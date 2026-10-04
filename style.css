@@ -1,0 +1,157 @@
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: #f2f5f8;
+    color: #222;
+}
+
+header {
+    background-color: #1f4e79;
+    color: white;
+    text-align: center;
+    padding: 25px;
+}
+
+header h1 {
+    margin: 0;
+    font-size: 30px;
+}
+
+header p {
+    margin: 8px 0 0;
+}
+
+.container {
+    width: 90%;
+    max-width: 900px;
+    margin: 30px auto;
+}
+
+.card {
+    background-color: white;
+    padding: 25px;
+    margin: 25px 0;
+    border-radius: 15px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.card h2 {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.stats {
+    display: flex;
+    gap: 15px;
+    justify-content: space-between;
+}
+
+.stat {
+    flex: 1;
+    text-align: center;
+    background-color: #eef4f9;
+    padding: 20px;
+    border-radius: 10px;
+}
+
+.stat h3 {
+    font-size: 30px;
+    margin: 5px;
+    color: #1f4e79;
+}
+
+.stat p {
+    margin: 5px;
+}
+
+input,
+select {
+    width: 90%;
+    padding: 14px;
+    margin: 7px 0;
+    border: 1px solid #aaa;
+    border-radius: 7px;
+    font-size: 16px;
+}
+
+button {
+    background-color: #1f4e79;
+    color: white;
+    border: none;
+    padding: 14px 25px;
+    margin: 12px 5px;
+    border-radius: 7px;
+    font-size: 16px;
+}
+
+button:hover {
+    background-color: #163a5c;
+}
+
+.slots {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+}
+
+.slot {
+    padding: 20px 5px;
+    text-align: center;
+    border-radius: 10px;
+    font-weight: bold;
+}
+
+.occupied {
+    background-color: #f5b5b5;
+}
+
+.available {
+    background-color: #b8e6c1;
+}
+
+.fee {
+    margin: 15px 0;
+    padding: 15px;
+    background-color: #eef4f9;
+    border-radius: 7px;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.vehicle-info {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #f4f4f4;
+    border-radius: 8px;
+}
+
+.vehicle-info p {
+    margin: 8px;
+}
+
+footer {
+    text-align: center;
+    background-color: #1f4e79;
+    color: white;
+    padding: 15px;
+    margin-top: 40px;
+}
+
+@media (max-width: 600px) {
+
+    .stats {
+        flex-direction: column;
+    }
+
+    .slots {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    button {
+        width: 90%;
+    }
+
+    header h1 {
+        font-size: 24px;
+    }
+}

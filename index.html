@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Parking Management System</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- Header -->
+    <header>
+        <h1>🚗 Parking Management System</h1>
+        <p>Smart Parking Management</p>
+    </header>
+
+
+    <div class="container">
+
+
+        <!-- Dashboard -->
+        <div class="card">
+
+            <h2>Dashboard</h2>
+
+            <div class="stats">
+
+                <div class="stat">
+                    <h3>8</h3>
+                    <p>Total Slots</p>
+                </div>
+
+                <div class="stat">
+                    <h3>0</h3>
+                    <p>Occupied</p>
+                </div>
+
+                <div class="stat">
+                    <h3>8</h3>
+                    <p>Available</p>
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- Vehicle Entry -->
+        <div class="card">
+
+            <h2>🚘 Vehicle Entry</h2>
+
+            <input type="text" id="vehicleNumber" placeholder="Vehicle Number">
+
+            <input type="text" id="ownerName" placeholder="Owner Name">
+
+
+            <select id="vehicleType">
+
+                <option value="">
+                    Select Vehicle Type
+                </option>
+
+                <option value="Car">
+                    Car
+                </option>
+
+                <option value="Bike">
+                    Bike
+                </option>
+
+                <option value="Auto">
+                    Auto
+                </option>
+
+                <option value="Van">
+                    Van
+                </option>
+
+            </select>
+
+
+            <input type="time" id="entryTime">
+
+
+            <!-- Automatically assigned slot -->
+            <div id="assignedSlot" class="fee">
+                Assigned Slot: —
+            </div>
+
+
+            <button onclick="vehicleEntry()">
+                Vehicle Entry
+            </button>
+
+
+            <p id="entryMessage"></p>
+
+        </div>
+
+
+
+        <!-- Parking Slot Status -->
+        <div class="card">
+
+            <h2>🅿️ Parking Slot Status</h2>
+
+            <div class="slots">
+
+                <div id="P01" class="slot available">
+                    P01 - Available
+                </div>
+
+                <div id="P02" class="slot available">
+                    P02 - Available
+                </div>
+
+                <div id="P03" class="slot available">
+                    P03 - Available
+                </div>
+
+                <div id="P04" class="slot available">
+                    P04 - Available
+                </div>
+
+                <div id="P05" class="slot available">
+                    P05 - Available
+                </div>
+
+                <div id="P06" class="slot available">
+                    P06 - Available
+                </div>
+
+                <div id="P07" class="slot available">
+                    P07 - Available
+                </div>
+
+                <div id="P08" class="slot available">
+                    P08 - Available
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- Vehicle Exit -->
+        <div class="card">
+
+            <h2>🚪 Vehicle Exit</h2>
+
+            <input type="text" id="exitVehicle" placeholder="Enter Vehicle Number">
+
+            <input type="time" id="exitTime">
+
+
+            <button onclick="vehicleExit()">
+                Vehicle Exit
+            </button>
+
+
+            <div id="exitResult"></div>
+
+        </div>
+
+
+
+        <!-- Search Vehicle -->
+        <div class="card">
+
+            <h2>🔍 Search Vehicle</h2>
+
+            <input type="text" id="searchVehicle" placeholder="Enter Vehicle Number">
+
+
+            <button onclick="searchVehicle()">
+                Search
+            </button>
+
+
+            <div id="searchResult"></div>
+
+        </div>
+
+
+
+        <!-- Parking Report -->
+        <div class="card">
+
+            <h2>📊 Parking Report</h2>
+
+            <p>Total Slots: 8</p>
+
+            <p>Occupied Slots: 0</p>
+
+            <p>Available Slots: 8</p>
+
+            <p>Today's Vehicles: 0</p>
+
+            <p>Total Collection: ₹0</p>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- Footer -->
+    <footer>
+
+        <p>
+            © 2026 Parking Management System
+        </p>
+
+    </footer>
+
+
+
+    <!-- JavaScript -->
+    <script src="script.js"></script>
+
+</body>
+
+</html>
