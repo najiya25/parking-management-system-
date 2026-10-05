@@ -200,7 +200,8 @@
                 alert("Login successful!");
 
                 // Open dashboard
-                window.location.href = "Index.html";
+                localStorage.setItem("isLoggedIn", "true");
+                window.location.href = "index.html";
 
             } else {
 
