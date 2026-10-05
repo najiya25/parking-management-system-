@@ -17,13 +17,78 @@
         <h1>🚗 Parking Management System</h1>
         <p>Smart Parking Management</p>
     </header>
+    <nav class="dashboard-nav">
+
+        <button onclick="showDashboard('mainDashboard')">
+            🏠 Dashboard
+        </button>
+
+        <button onclick="showDashboard('entryDashboard')">
+            🚘 Vehicle Entry
+        </button>
+
+        <button onclick="showDashboard('slotDashboard')">
+            🅿️ Slot Status
+        </button>
+
+        <button onclick="showDashboard('exitDashboard')">
+            🚪 Vehicle Exit
+        </button>
+
+        <button onclick="showDashboard('searchDashboard')">
+            🔍 Search Vehicle
+        </button>
+
+        <button onclick="showDashboard('reportDashboard')">
+            📊 Parking Report
+        </button>
+
+        <button onclick="showDashboard('historyDashboard')">
+            📜 Parking History
+        </button>
+
+        <button onclick="logout()">
+            🚪 Logout
+        </button>
+
+    </nav>
+
+    <!-- Dashboard Navigation -->
+    <nav class="dashboard-nav">
+        <button onclick="showDashboard('mainDashboard')">
+            🏠 Dashboard
+        </button>
+
+        <button onclick="showDashboard('entryDashboard')">
+            🚘 Vehicle Entry
+        </button>
+
+        <button onclick="showDashboard('slotDashboard')">
+            🅿️ Slot Status
+        </button>
+
+        <button onclick="showDashboard('exitDashboard')">
+            🚪 Vehicle Exit
+        </button>
+
+        <button onclick="showDashboard('searchDashboard')">
+            🔍 Search Vehicle
+        </button>
+
+        <button onclick="showDashboard('reportDashboard')">
+            📊 Parking Report
+        </button>
+
+        <button onclick="showDashboard('historyDashboard')">
+            📜 Parking History
+        </button>
+    </nav>
 
 
     <div class="container">
 
-
         <!-- Dashboard -->
-        <div class="card">
+        <div id="mainDashboard" class="card dashboard-section">
 
             <h2>Dashboard</h2>
 
@@ -49,15 +114,15 @@
         </div>
 
 
-
         <!-- Vehicle Entry -->
-        <div class="card">
+        <div id="entryDashboard" class="card dashboard-section">
 
             <h2>🚘 Vehicle Entry</h2>
 
             <input type="text" id="vehicleNumber" placeholder="Vehicle Number">
 
             <input type="text" id="ownerName" placeholder="Owner Name">
+
             <div class="fee-box">
                 <h3>Parking Fees</h3>
 
@@ -115,9 +180,8 @@
         </div>
 
 
-
         <!-- Parking Slot Status -->
-        <div class="card">
+        <div id="slotDashboard" class="card dashboard-section">
 
             <h2>🅿️ Parking Slot Status</h2>
 
@@ -160,9 +224,8 @@
         </div>
 
 
-
         <!-- Vehicle Exit -->
-        <div class="card">
+        <div id="exitDashboard" class="card dashboard-section">
 
             <h2>🚪 Vehicle Exit</h2>
 
@@ -182,9 +245,8 @@
         </div>
 
 
-
         <!-- Search Vehicle -->
-        <div class="card">
+        <div id="searchDashboard" class="card dashboard-section">
 
             <h2>🔍 Search Vehicle</h2>
 
@@ -201,9 +263,8 @@
         </div>
 
 
-
         <!-- Parking Report -->
-        <div class="card">
+        <div id="reportDashboard" class="card dashboard-section">
 
             <h2>📊 Parking Report</h2>
 
@@ -221,8 +282,9 @@
 
     </div>
 
+
     <!-- Parking History -->
-    <div class="card">
+    <div id="historyDashboard" class="card dashboard-section history-card">
 
         <h2>📜 Parking History</h2>
 
@@ -231,6 +293,9 @@
         </div>
 
     </div>
+    <button onclick="logout()">
+        🚪 Logout
+    </button>
 
     <!-- Footer -->
     <footer>
@@ -240,7 +305,6 @@
         </p>
 
     </footer>
-
 
 
     <!-- JavaScript -->
