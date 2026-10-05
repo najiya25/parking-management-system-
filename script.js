@@ -3,12 +3,14 @@
 let vehicles = JSON.parse(localStorage.getItem("parkingVehicles")) || [];
 let collection = Number(localStorage.getItem("parkingCollection")) || 0;
 let todayVehicles = Number(localStorage.getItem("todayVehicles")) || 0;
+let history = JSON.parse(localStorage.getItem("parkingHistory")) || [];
 
 // Save data
 function saveData() {
   localStorage.setItem("parkingVehicles", JSON.stringify(vehicles));
   localStorage.setItem("parkingCollection", collection);
   localStorage.setItem("todayVehicles", todayVehicles);
+  localStorage.setItem("parkingHistory", JSON.stringify(history));
 }
 
 // Vehicle Entry
@@ -226,6 +228,17 @@ function vehicleExit() {
 
   collection += fee;
 
+  // Add vehicle to history
+  history.push({
+    vehicleNumber: vehicle.vehicleNumber,
+    ownerName: vehicle.ownerName,
+    vehicleType: vehicle.vehicleType,
+    slotNumber: vehicle.slotNumber,
+    entryTime: vehicle.entryTime,
+    exitTime: exitTime,
+    fee: fee,
+  });
+
   // Remove vehicle
   vehicles.splice(index, 1);
 
@@ -271,6 +284,7 @@ function vehicleExit() {
   updateDashboard();
   updateSlots();
   updateReport();
+  updateHistory();
 }
 
 // Convert time into minutes
@@ -346,9 +360,77 @@ function updateReport() {
   }
 }
 
+function updateHistory() {
+  let historyList = document.getElementById("historyList");
+
+  if (!historyList) {
+    return;
+  }
+
+  if (history.length === 0) {
+    historyList.innerHTML = "<p>No vehicle history available.</p>";
+    return;
+  }
+
+  historyList.innerHTML = "";
+
+  history
+    .slice()
+    .reverse()
+    .forEach(function (vehicle) {
+      historyList.innerHTML += `
+            <div class="vehicle-info">
+
+                <p>
+                    <strong>Vehicle Number:</strong>
+                    ${vehicle.vehicleNumber}
+                </p>
+
+                <p>
+                    <strong>Owner Name:</strong>
+                    ${vehicle.ownerName}
+                </p>
+
+                <p>
+                    <strong>Vehicle Type:</strong>
+                    ${vehicle.vehicleType}
+                </p>
+
+                <p>
+                    <strong>Parking Slot:</strong>
+                    ${vehicle.slotNumber}
+                </p>
+
+                <p>
+                    <strong>Entry Time:</strong>
+                    ${vehicle.entryTime}
+                </p>
+
+                <p>
+                    <strong>Exit Time:</strong>
+                    ${vehicle.exitTime}
+                </p>
+
+                <p>
+                    <strong>Parking Fee:</strong>
+                    ₹${vehicle.fee}
+                </p>
+
+            </div>
+        `;
+    });
+}
+
 // Load data when page opens
 window.onload = function () {
   updateDashboard();
   updateSlots();
   updateReport();
+  updateHistory();
 };
+
+// Login
+function login(event) {
+  event.preventDefault();
+  window.location.href = "index.html";
+}

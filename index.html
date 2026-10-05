@@ -58,6 +58,14 @@
             <input type="text" id="vehicleNumber" placeholder="Vehicle Number">
 
             <input type="text" id="ownerName" placeholder="Owner Name">
+            <div class="fee-box">
+                <h3>Parking Fees</h3>
+
+                <p>Bike - ₹10 / hour</p>
+                <p>Auto - ₹15 / hour</p>
+                <p>Car - ₹20 / hour</p>
+                <p>Van - ₹25 / hour</p>
+            </div>
 
 
             <select id="vehicleType">
@@ -85,7 +93,10 @@
             </select>
 
 
-            <input type="time" id="entryTime">
+            <div class="input-group">
+                <input type="text" id="entryTime" placeholder="Entry Time" onfocus="this.type='time'"
+                    onblur="if(!this.value)this.type='text'" required>
+            </div>
 
 
             <!-- Automatically assigned slot -->
@@ -157,7 +168,8 @@
 
             <input type="text" id="exitVehicle" placeholder="Enter Vehicle Number">
 
-            <input type="time" id="exitTime">
+            <input type="text" id="exitTime" placeholder="Exit Time" onfocus="this.type='time'"
+                onblur="if(!this.value)this.type='text'" required>
 
 
             <button onclick="vehicleExit()">
@@ -209,7 +221,16 @@
 
     </div>
 
+    <!-- Parking History -->
+    <div class="card">
 
+        <h2>📜 Parking History</h2>
+
+        <div id="historyList">
+            <p>No vehicle history available.</p>
+        </div>
+
+    </div>
 
     <!-- Footer -->
     <footer>
