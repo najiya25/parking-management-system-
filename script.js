@@ -1,4 +1,11 @@
 // ==========================================
+// LOGIN PROTECTION
+// ==========================================
+
+if (localStorage.getItem("isLoggedIn") !== "true") {
+  window.location.href = "login.html";
+}
+// ==========================================
 // SEPARATE DASHBOARD NAVIGATION
 // ==========================================
 
@@ -579,6 +586,7 @@ function logout() {
   let confirmLogout = confirm("Are you sure you want to logout?");
 
   if (confirmLogout) {
+    localStorage.removeItem("isLoggedIn");
     window.location.href = "login.html";
   }
 }
