@@ -1,79 +1,56 @@
-const sqlite3 = require("sqlite3").verbose();
-const path = require("path");
+const { Pool } = require("pg");
 
-// Keep the database inside the backend folder
-const databasePath = path.join(__dirname, "parking.db");
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl:
+    process.env.NODE_ENV === "production"
+      ? { rejectUnauthorized: false }
+      : false,
+});
 
-const db = new sqlite3.Database(databasePath, (err) => {
-  if (err) {
-    console.error("Database connection failed:", err.message);
-  } else {
-    console.log("Connected to parking database.");
+async function initializeDatabase() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS admins (
+        id SERIAL PRIMARY KEY,
+        username VARCHAR(100) UNIQUE NOT NULL,
+        password TEXT NOT NULL
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS vehicles (
+        id SERIAL PRIMARY KEY,
+        vehicleNumber VARCHAR(50) UNIQUE NOT NULL,
+        ownerName VARCHAR(150) NOT NULL,
+        vehicleType VARCHAR(50) NOT NULL,
+        slotNumber VARCHAR(10) NOT NULL,
+        entryTime VARCHAR(20) NOT NULL,
+        entryDate TIMESTAMP NOT NULL
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS history (
+        id SERIAL PRIMARY KEY,
+        vehicleNumber VARCHAR(50) NOT NULL,
+        ownerName VARCHAR(150) NOT NULL,
+        vehicleType VARCHAR(50) NOT NULL,
+        slotNumber VARCHAR(10) NOT NULL,
+        entryTime VARCHAR(20) NOT NULL,
+        exitTime VARCHAR(20) NOT NULL,
+        duration INTEGER NOT NULL,
+        fee NUMERIC(10, 2) NOT NULL,
+        exitDate TIMESTAMP NOT NULL
+      )
+    `);
+
+    console.log("PostgreSQL database initialized successfully.");
+  } catch (error) {
+    console.error("Database initialization error:", error);
   }
-});
+}
 
-db.serialize(() => {
-  // ==================================================
-  // ADMIN TABLE
-  // ==================================================
+initializeDatabase();
 
-  db.run(`
-        CREATE TABLE IF NOT EXISTS admins (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL
-        )
-    `);
-
-  // ==================================================
-  // ACTIVE VEHICLES TABLE
-  // ==================================================
-
-  db.run(`
-        CREATE TABLE IF NOT EXISTS vehicles (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-            vehicleNumber TEXT UNIQUE NOT NULL,
-
-            ownerName TEXT NOT NULL,
-
-            vehicleType TEXT NOT NULL,
-
-            slotNumber TEXT UNIQUE NOT NULL,
-
-            entryTime TEXT NOT NULL,
-
-            entryDate TEXT NOT NULL
-        )
-    `);
-
-  // ==================================================
-  // PARKING HISTORY TABLE
-  // ==================================================
-
-  db.run(`
-        CREATE TABLE IF NOT EXISTS history (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-            vehicleNumber TEXT NOT NULL,
-
-            ownerName TEXT NOT NULL,
-
-            vehicleType TEXT NOT NULL,
-
-            slotNumber TEXT NOT NULL,
-
-            entryTime TEXT NOT NULL,
-
-            exitTime TEXT NOT NULL,
-
-            duration INTEGER NOT NULL,
-
-            fee INTEGER NOT NULL,
-
-            exitDate TEXT NOT NULL
-        )
-    `);
-});
-
-module.exports = db;
+module.exports = pool;
