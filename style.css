@@ -355,3 +355,63 @@ footer {
 .dashboard-nav button:last-child:hover {
     background-color: #8b0000;
 }
+/* ==========================================
+   CURRENTLY PARKED VEHICLES
+   ========================================== */
+
+.parked-vehicles {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 2px solid #e1e6eb;
+}
+
+.parked-vehicles h3 {
+    margin-bottom: 20px;
+    text-align: center;
+    color: #1f4e79;
+    font-size: 22px;
+}
+
+.parked-vehicle {
+    display: grid;
+    grid-template-columns: 1.2fr 1.5fr 1fr 1.2fr;
+    gap: 10px;
+    align-items: center;
+
+    background-color: #f4f8fb;
+
+    border-left: 5px solid #1f4e79;
+
+    padding: 15px;
+    margin: 10px 0;
+
+    border-radius: 8px;
+}
+
+.parked-vehicle div {
+    padding: 5px;
+}
+
+.parked-vehicle strong {
+    color: #1f4e79;
+}
+
+.no-vehicles {
+    text-align: center;
+    padding: 20px;
+    background-color: #f4f4f4;
+    border-radius: 8px;
+    color: #666;
+}
+
+
+/* Mobile */
+
+@media (max-width: 600px) {
+
+    .parked-vehicle {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+
+}

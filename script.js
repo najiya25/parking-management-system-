@@ -436,7 +436,94 @@ async function updateDashboard() {
 // UPDATE PARKING SLOTS
 // ==========================================
 
-async function updateSlots() {
+function updateSlots(data) {
+
+    const vehicles = Array.isArray(data)
+        ? data
+        : (data.vehicles || []);
+
+    // Update parking slot status
+    for (let i = 1; i <= 8; i++) {
+
+        const slotId = "P" + String(i).padStart(2, "0");
+
+        const slot = document.getElementById(slotId);
+
+        if (!slot) continue;
+
+        const vehicle = vehicles.find(
+            v => v.slotNumber === slotId
+        );
+
+        if (vehicle) {
+
+            slot.classList.remove("available");
+            slot.classList.add("occupied");
+
+            slot.innerText =
+                `${slotId} - Occupied`;
+
+        } else {
+
+            slot.classList.remove("occupied");
+            slot.classList.add("available");
+
+            slot.innerText =
+                `${slotId} - Available`;
+        }
+    }
+
+
+    // ==========================================
+    // CURRENTLY PARKED VEHICLES
+    // ==========================================
+
+    const parkedList =
+        document.getElementById("parkedVehiclesList");
+
+    if (!parkedList) return;
+
+
+    // No vehicles currently parked
+    if (vehicles.length === 0) {
+
+        parkedList.innerHTML = `
+            <p class="no-vehicles">
+                No vehicles are currently parked.
+            </p>
+        `;
+
+        return;
+    }
+
+
+    // Display currently parked vehicles
+    parkedList.innerHTML = vehicles.map(vehicle => {
+
+        return `
+            <div class="parked-vehicle">
+
+                <div>
+                    🚗 <strong>${vehicle.vehicleNumber}</strong>
+                </div>
+
+                <div>
+                    👤 ${vehicle.ownerName}
+                </div>
+
+                <div>
+                    🅿️ <strong>${vehicle.slotNumber}</strong>
+                </div>
+
+                <div>
+                    🕐 ${vehicle.entryTime}
+                </div>
+
+            </div>
+        `;
+
+    }).join("");
+}
   try {
     const data = await apiRequest("/api/vehicles");
 
