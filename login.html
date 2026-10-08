@@ -173,37 +173,85 @@
 
     </div>
     <script>
-        function login(event) {
+
+        async function login(event) {
+
             event.preventDefault();
 
-            let username = document.getElementById("username").value.trim();
-            let password = document.getElementById("password").value.trim();
+            const username =
+                document.getElementById("username").value.trim();
 
-            if (username === "admin" && password === "1234") {
+            const password =
+                document.getElementById("password").value.trim();
 
-                localStorage.setItem("isLoggedIn", "true");
+            const message =
+                document.getElementById("message");
 
-                alert("Login successful!");
+            message.innerText = "";
 
-                window.location.href = "index.html";
+            try {
 
-            } else {
+                const response = await fetch("/api/login", {
 
-                document.getElementById("message").innerText =
-                    "Invalid username or password!";
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+
+                    body: JSON.stringify({
+                        username: username,
+                        password: password
+                    })
+
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+
+                    // Save JWT token
+                    localStorage.setItem("token", data.token);
+
+                    alert("Login successful!");
+
+                    window.location.href = "index.html";
+
+                } else {
+
+                    message.innerText =
+                        data.message || "Invalid username or password!";
+
+                }
+
+            } catch (error) {
+
+                console.error(error);
+
+                message.innerText =
+                    "Unable to connect to the server.";
 
             }
         }
+
 
         function showPassword() {
-            let password = document.getElementById("password");
+
+            const password =
+                document.getElementById("password");
 
             if (password.type === "password") {
+
                 password.type = "text";
+
             } else {
+
                 password.type = "password";
+
             }
+
         }
+
     </script>
 
 
