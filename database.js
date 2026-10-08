@@ -2,6 +2,7 @@ const { Pool } = require("pg");
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+
   ssl:
     process.env.NODE_ENV === "production"
       ? { rejectUnauthorized: false }
@@ -21,27 +22,27 @@ async function initializeDatabase() {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS vehicles (
         id SERIAL PRIMARY KEY,
-        vehicleNumber VARCHAR(50) UNIQUE NOT NULL,
-        ownerName VARCHAR(150) NOT NULL,
-        vehicleType VARCHAR(50) NOT NULL,
-        slotNumber VARCHAR(10) NOT NULL,
-        entryTime VARCHAR(20) NOT NULL,
-        entryDate TIMESTAMP NOT NULL
+        "vehicleNumber" VARCHAR(50) UNIQUE NOT NULL,
+        "ownerName" VARCHAR(150) NOT NULL,
+        "vehicleType" VARCHAR(50) NOT NULL,
+        "slotNumber" VARCHAR(10) NOT NULL,
+        "entryTime" VARCHAR(20) NOT NULL,
+        "entryDate" TIMESTAMP NOT NULL
       )
     `);
 
     await pool.query(`
       CREATE TABLE IF NOT EXISTS history (
         id SERIAL PRIMARY KEY,
-        vehicleNumber VARCHAR(50) NOT NULL,
-        ownerName VARCHAR(150) NOT NULL,
-        vehicleType VARCHAR(50) NOT NULL,
-        slotNumber VARCHAR(10) NOT NULL,
-        entryTime VARCHAR(20) NOT NULL,
-        exitTime VARCHAR(20) NOT NULL,
-        duration INTEGER NOT NULL,
-        fee NUMERIC(10, 2) NOT NULL,
-        exitDate TIMESTAMP NOT NULL
+        "vehicleNumber" VARCHAR(50) NOT NULL,
+        "ownerName" VARCHAR(150) NOT NULL,
+        "vehicleType" VARCHAR(50) NOT NULL,
+        "slotNumber" VARCHAR(10) NOT NULL,
+        "entryTime" VARCHAR(20) NOT NULL,
+        "exitTime" VARCHAR(20) NOT NULL,
+        "duration" INTEGER NOT NULL,
+        "fee" NUMERIC(10, 2) NOT NULL,
+        "exitDate" TIMESTAMP NOT NULL
       )
     `);
 
