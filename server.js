@@ -1,65 +1,119 @@
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const path = require("path");
-
 const db = require("./database");
 
 const app = express();
 
 const PORT = process.env.PORT || 3000;
+const JWT_SECRET = process.env.JWT_SECRET || "parking-management-secret-key";
 
-const JWT_SECRET = process.env.JWT_SECRET || "parking-system-secret-key";
+const TOTAL_SLOTS = 8;
 
-// ==========================================
-// MIDDLEWARE
-// ==========================================
-
+// Middleware
 app.use(cors());
 app.use(express.json());
 
-// ==========================================
-// SERVE FRONTEND
-// ==========================================
-
-// Your index.html, login.html, script.js and
-// style.css are in the same folder as server.js.
-
+// Serve frontend files from the same repository
 app.use(express.static(__dirname));
 
 // ==========================================
-// DEFAULT ADMIN
+// DATABASE INITIALIZATION
 // ==========================================
 
-const defaultUsername = "admin";
-const defaultPassword = "1234";
-
-// Create default admin if it doesn't exist
-async function createDefaultAdmin() {
+async function initializeDatabase() {
   try {
-    const existingAdmin = await db.query(
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS admins (
+        id SERIAL PRIMARY KEY,
+        username VARCHAR(100) UNIQUE NOT NULL,
+        password TEXT NOT NULL
+      )
+    `);
+
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS vehicles (
+        id SERIAL PRIMARY KEY,
+        vehiclenumber VARCHAR(50) UNIQUE NOT NULL,
+        ownername VARCHAR(150) NOT NULL,
+        vehicletype VARCHAR(50) NOT NULL,
+        slotnumber VARCHAR(10) NOT NULL,
+        entrytime VARCHAR(20) NOT NULL,
+        entrydate TIMESTAMP NOT NULL
+      )
+    `);
+
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS history (
+        id SERIAL PRIMARY KEY,
+        vehiclenumber VARCHAR(50) NOT NULL,
+        ownername VARCHAR(150) NOT NULL,
+        vehicletype VARCHAR(50) NOT NULL,
+        slotnumber VARCHAR(10) NOT NULL,
+        entrytime VARCHAR(20) NOT NULL,
+        exittime VARCHAR(20) NOT NULL,
+        duration INTEGER NOT NULL,
+        fee NUMERIC(10,2) NOT NULL,
+        exitdate TIMESTAMP NOT NULL
+      )
+    `);
+
+    // Create default admin if it doesn't exist
+    const adminCheck = await db.query(
       "SELECT id FROM admins WHERE username = $1",
-      [defaultUsername],
+      ["admin"],
     );
 
-    if (existingAdmin.rows.length === 0) {
-      const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+    if (adminCheck.rows.length === 0) {
+      const hashedPassword = await bcrypt.hash("1234", 10);
 
       await db.query(
-        `
-        INSERT INTO admins (username, password)
-        VALUES ($1, $2)
-        `,
-        [defaultUsername, hashedPassword],
+        "INSERT INTO admins (username, password) VALUES ($1, $2)",
+        ["admin", hashedPassword],
       );
 
       console.log("Default admin created.");
-    } else {
-      console.log("Default admin already exists.");
     }
+
+    console.log("Database initialized successfully.");
   } catch (error) {
-    console.error("Admin creation error:", error);
+    console.error("Database initialization error:", error);
+  }
+}
+
+// ==========================================
+// AUTHENTICATION MIDDLEWARE
+// ==========================================
+
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader) {
+    return res.status(401).json({
+      message: "Authentication required.",
+    });
+  }
+
+  const token = authHeader.split(" ")[1];
+
+  if (!token) {
+    return res.status(401).json({
+      message: "Invalid token.",
+    });
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+
+    req.user = decoded;
+
+    next();
+  } catch (error) {
+    return res.status(403).json({
+      message: "Invalid or expired token.",
+    });
   }
 }
 
@@ -77,14 +131,9 @@ app.post("/api/login", async (req, res) => {
       });
     }
 
-    const result = await db.query(
-      `
-      SELECT *
-      FROM admins
-      WHERE username = $1
-      `,
-      [username],
-    );
+    const result = await db.query("SELECT * FROM admins WHERE username = $1", [
+      username,
+    ]);
 
     if (result.rows.length === 0) {
       return res.status(401).json({
@@ -94,9 +143,9 @@ app.post("/api/login", async (req, res) => {
 
     const admin = result.rows[0];
 
-    const validPassword = await bcrypt.compare(password, admin.password);
+    const passwordMatch = await bcrypt.compare(password, admin.password);
 
-    if (!validPassword) {
+    if (!passwordMatch) {
       return res.status(401).json({
         message: "Invalid username or password.",
       });
@@ -109,7 +158,7 @@ app.post("/api/login", async (req, res) => {
       },
       JWT_SECRET,
       {
-        expiresIn: "8h",
+        expiresIn: "7d",
       },
     );
 
@@ -128,66 +177,32 @@ app.post("/api/login", async (req, res) => {
 });
 
 // ==========================================
-// AUTHENTICATION
+// GET ACTIVE VEHICLES
 // ==========================================
 
-function authenticate(req, res, next) {
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader) {
-    return res.status(401).json({
-      message: "Authentication required.",
-    });
-  }
-
-  const parts = authHeader.split(" ");
-
-  if (parts.length !== 2 || parts[0] !== "Bearer") {
-    return res.status(401).json({
-      message: "Invalid authorization format.",
-    });
-  }
-
-  const token = parts[1];
-
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-
-    req.admin = decoded;
-
-    next();
-  } catch (error) {
-    return res.status(401).json({
-      message: "Invalid or expired token.",
-    });
-  }
-}
-
-// ==========================================
-// GET ALL CURRENTLY PARKED VEHICLES
-// ==========================================
-
-app.get("/api/vehicles", authenticate, async (req, res) => {
+app.get("/api/vehicles", authenticateToken, async (req, res) => {
   try {
     const result = await db.query(`
       SELECT
         id,
-        "vehicleNumber",
-        "ownerName",
-        "vehicleType",
-        "slotNumber",
-        "entryTime",
-        "entryDate"
+        vehiclenumber AS "vehicleNumber",
+        ownername AS "ownerName",
+        vehicletype AS "vehicleType",
+        slotnumber AS "slotNumber",
+        entrytime AS "entryTime",
+        entrydate AS "entryDate"
       FROM vehicles
-      ORDER BY id DESC
+      ORDER BY id ASC
     `);
 
-    res.json(result.rows);
+    res.json({
+      vehicles: result.rows,
+    });
   } catch (error) {
     console.error("Vehicles error:", error);
 
     res.status(500).json({
-      message: "Database error.",
+      message: "Unable to load vehicles.",
     });
   }
 });
@@ -196,113 +211,103 @@ app.get("/api/vehicles", authenticate, async (req, res) => {
 // VEHICLE ENTRY
 // ==========================================
 
-app.post("/api/vehicles/entry", authenticate, async (req, res) => {
+app.post("/api/entry", authenticateToken, async (req, res) => {
   try {
     const { vehicleNumber, ownerName, vehicleType, entryTime } = req.body;
 
     if (!vehicleNumber || !ownerName || !vehicleType || !entryTime) {
       return res.status(400).json({
-        message: "Please fill all details.",
+        message: "Please fill all vehicle details.",
       });
     }
 
-    const number = vehicleNumber.trim().toUpperCase();
+    const cleanVehicleNumber = vehicleNumber.trim().toUpperCase();
 
-    // ==========================================
-    // CHECK DUPLICATE VEHICLE
-    // ==========================================
-
+    // Check whether vehicle is already parked
     const existingVehicle = await db.query(
       `
-        SELECT *
-        FROM vehicles
-        WHERE "vehicleNumber" = $1
-        `,
-      [number],
+      SELECT id
+      FROM vehicles
+      WHERE vehiclenumber = $1
+      `,
+      [cleanVehicleNumber],
     );
 
     if (existingVehicle.rows.length > 0) {
       return res.status(400).json({
-        message: "Vehicle is already parked.",
+        message: "This vehicle is already parked.",
       });
     }
 
-    // ==========================================
-    // FIND AVAILABLE SLOT
-    // ==========================================
+    // Find first available slot
+    const occupiedResult = await db.query("SELECT slotnumber FROM vehicles");
 
-    const occupiedResult = await db.query(`
-        SELECT "slotNumber"
-        FROM vehicles
-      `);
+    const occupiedSlots = occupiedResult.rows.map((row) => row.slotnumber);
 
-    const occupiedSlots = occupiedResult.rows.map(
-      (vehicle) => vehicle.slotNumber,
-    );
+    let assignedSlot = null;
 
-    let availableSlot = null;
-
-    for (let i = 1; i <= 8; i++) {
+    for (let i = 1; i <= TOTAL_SLOTS; i++) {
       const slot = "P0" + i;
 
       if (!occupiedSlots.includes(slot)) {
-        availableSlot = slot;
+        assignedSlot = slot;
         break;
       }
     }
 
-    // ==========================================
-    // NO SLOT AVAILABLE
-    // ==========================================
-
-    if (!availableSlot) {
+    if (!assignedSlot) {
       return res.status(400).json({
-        message: "No parking slot available.",
+        message: "Parking is full.",
       });
     }
 
-    // ==========================================
-    // SAVE VEHICLE
-    // ==========================================
-
-    const result = await db.query(
+    await db.query(
       `
-        INSERT INTO vehicles
-        (
-          "vehicleNumber",
-          "ownerName",
-          "vehicleType",
-          "slotNumber",
-          "entryTime",
-          "entryDate"
-        )
-        VALUES ($1, $2, $3, $4, $5, NOW())
-        RETURNING
-          id,
-          "vehicleNumber",
-          "ownerName",
-          "vehicleType",
-          "slotNumber",
-          "entryTime",
-          "entryDate"
-        `,
-      [number, ownerName, vehicleType, availableSlot, entryTime],
+      INSERT INTO vehicles
+      (
+        vehiclenumber,
+        ownername,
+        vehicletype,
+        slotnumber,
+        entrytime,
+        entrydate
+      )
+      VALUES ($1, $2, $3, $4, $5, NOW())
+      `,
+      [
+        cleanVehicleNumber,
+        ownerName.trim(),
+        vehicleType,
+        assignedSlot,
+        entryTime,
+      ],
     );
 
-    // ==========================================
-    // RESPONSE
-    // ==========================================
+    const vehicleResult = await db.query(
+      `
+      SELECT
+        id,
+        vehiclenumber AS "vehicleNumber",
+        ownername AS "ownerName",
+        vehicletype AS "vehicleType",
+        slotnumber AS "slotNumber",
+        entrytime AS "entryTime",
+        entrydate AS "entryDate"
+      FROM vehicles
+      WHERE vehiclenumber = $1
+      `,
+      [cleanVehicleNumber],
+    );
 
     res.json({
       message: "Vehicle parked successfully.",
-
-      vehicle: result.rows[0],
+      vehicle: vehicleResult.rows[0],
     });
   } catch (error) {
     console.error("Vehicle entry error:", error);
 
     res.status(500).json({
-      message: "Could not save vehicle.",
+      message: "Unable to park vehicle.",
     });
   }
 });
@@ -311,53 +316,49 @@ app.post("/api/vehicles/entry", authenticate, async (req, res) => {
 // SEARCH VEHICLE
 // ==========================================
 
-app.get(
-  "/api/vehicles/search/:vehicleNumber",
-  authenticate,
-  async (req, res) => {
-    try {
-      const number = req.params.vehicleNumber.trim().toUpperCase();
+app.get("/api/search/:vehicleNumber", authenticateToken, async (req, res) => {
+  try {
+    const vehicleNumber = req.params.vehicleNumber.trim().toUpperCase();
 
-      const result = await db.query(
-        `
-        SELECT
-          id,
-          "vehicleNumber",
-          "ownerName",
-          "vehicleType",
-          "slotNumber",
-          "entryTime",
-          "entryDate"
-        FROM vehicles
-        WHERE "vehicleNumber" = $1
-        `,
-        [number],
-      );
+    const result = await db.query(
+      `
+      SELECT
+        id,
+        vehiclenumber AS "vehicleNumber",
+        ownername AS "ownerName",
+        vehicletype AS "vehicleType",
+        slotnumber AS "slotNumber",
+        entrytime AS "entryTime",
+        entrydate AS "entryDate"
+      FROM vehicles
+      WHERE vehiclenumber = $1
+      `,
+      [vehicleNumber],
+    );
 
-      if (result.rows.length === 0) {
-        return res.status(404).json({
-          message: "Vehicle not found.",
-        });
-      }
-
-      res.json({
-        vehicle: result.rows[0],
-      });
-    } catch (error) {
-      console.error("Vehicle search error:", error);
-
-      res.status(500).json({
-        message: "Database error.",
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        message: "Vehicle not found.",
       });
     }
-  },
-);
+
+    res.json({
+      vehicle: result.rows[0],
+    });
+  } catch (error) {
+    console.error("Search error:", error);
+
+    res.status(500).json({
+      message: "Unable to search vehicle.",
+    });
+  }
+});
 
 // ==========================================
 // VEHICLE EXIT
 // ==========================================
 
-app.post("/api/vehicles/exit", authenticate, async (req, res) => {
+app.post("/api/exit", authenticateToken, async (req, res) => {
   try {
     const { vehicleNumber, exitTime } = req.body;
 
@@ -367,62 +368,60 @@ app.post("/api/vehicles/exit", authenticate, async (req, res) => {
       });
     }
 
-    const number = vehicleNumber.trim().toUpperCase();
+    const cleanVehicleNumber = vehicleNumber.trim().toUpperCase();
 
-    // ==========================================
-    // FIND VEHICLE
-    // ==========================================
-
-    const vehicleResult = await db.query(
+    const result = await db.query(
       `
-        SELECT
-          id,
-          "vehicleNumber",
-          "ownerName",
-          "vehicleType",
-          "slotNumber",
-          "entryTime",
-          "entryDate"
-        FROM vehicles
-        WHERE "vehicleNumber" = $1
-        `,
-      [number],
+      SELECT
+        id,
+        vehiclenumber AS "vehicleNumber",
+        ownername AS "ownerName",
+        vehicletype AS "vehicleType",
+        slotnumber AS "slotNumber",
+        entrytime AS "entryTime",
+        entrydate AS "entryDate"
+      FROM vehicles
+      WHERE vehiclenumber = $1
+      `,
+      [cleanVehicleNumber],
     );
 
-    if (vehicleResult.rows.length === 0) {
+    if (result.rows.length === 0) {
       return res.status(404).json({
         message: "Vehicle not found.",
       });
     }
 
-    const vehicle = vehicleResult.rows[0];
+    const vehicle = result.rows[0];
 
-    // ==========================================
-    // CALCULATE DURATION
-    // ==========================================
+    // Convert HH:MM into minutes
+    function convertToMinutes(time) {
+      const parts = time.split(":");
 
-    const entryMinutes = convertToMinutes(vehicle.entryTime);
+      const hours = Number(parts[0]);
+      const minutes = Number(parts[1]);
 
-    const exitMinutes = convertToMinutes(exitTime);
+      return hours * 60 + minutes;
+    }
+
+    let entryMinutes = convertToMinutes(vehicle.entryTime);
+
+    let exitMinutes = convertToMinutes(exitTime);
 
     let durationMinutes = exitMinutes - entryMinutes;
 
-    // Vehicle stayed overnight
+    // Vehicle exited after midnight
     if (durationMinutes < 0) {
       durationMinutes += 24 * 60;
     }
 
     let hours = Math.ceil(durationMinutes / 60);
 
-    // Minimum 1 hour
     if (hours < 1) {
       hours = 1;
     }
 
-    // ==========================================
-    // CALCULATE FEE
-    // ==========================================
-
+    // Parking rates
     let rate = 0;
 
     if (vehicle.vehicleType === "Car") {
@@ -437,27 +436,24 @@ app.post("/api/vehicles/exit", authenticate, async (req, res) => {
 
     const fee = hours * rate;
 
-    // ==========================================
-    // SAVE HISTORY
-    // ==========================================
-
+    // Save to history
     await db.query(
       `
-        INSERT INTO history
-        (
-          "vehicleNumber",
-          "ownerName",
-          "vehicleType",
-          "slotNumber",
-          "entryTime",
-          "exitTime",
-          "duration",
-          "fee",
-          "exitDate"
-        )
-        VALUES
-        ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
-        `,
+      INSERT INTO history
+      (
+        vehiclenumber,
+        ownername,
+        vehicletype,
+        slotnumber,
+        entrytime,
+        exittime,
+        duration,
+        fee,
+        exitdate
+      )
+      VALUES
+      ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+      `,
       [
         vehicle.vehicleNumber,
         vehicle.ownerName,
@@ -470,78 +466,26 @@ app.post("/api/vehicles/exit", authenticate, async (req, res) => {
       ],
     );
 
-    // ==========================================
-    // REMOVE VEHICLE FROM ACTIVE PARKING
-    // ==========================================
-
+    // Remove from active parking
     await db.query(
       `
-        DELETE FROM vehicles
-        WHERE id = $1
-        `,
-      [vehicle.id],
+      DELETE FROM vehicles
+      WHERE vehiclenumber = $1
+      `,
+      [cleanVehicleNumber],
     );
-
-    // ==========================================
-    // SEND COMPLETE RESPONSE
-    // ==========================================
 
     res.json({
       message: "Vehicle exited successfully.",
-
-      vehicle: {
-        vehicleNumber: vehicle.vehicleNumber,
-        ownerName: vehicle.ownerName,
-        vehicleType: vehicle.vehicleType,
-        slotNumber: vehicle.slotNumber,
-        entryTime: vehicle.entryTime,
-        exitTime: exitTime,
-      },
-
+      vehicle: vehicle,
       duration: hours,
-
       fee: fee,
     });
   } catch (error) {
     console.error("Vehicle exit error:", error);
 
     res.status(500).json({
-      message: "Could not process vehicle exit.",
-    });
-  }
-});
-
-// ==========================================
-// PARKING SLOT STATUS
-// ==========================================
-
-app.get("/api/slots", authenticate, async (req, res) => {
-  try {
-    const result = await db.query(`
-        SELECT "slotNumber"
-        FROM vehicles
-      `);
-
-    const occupiedSlots = result.rows.map((vehicle) => vehicle.slotNumber);
-
-    const slots = [];
-
-    for (let i = 1; i <= 8; i++) {
-      const slot = "P0" + i;
-
-      slots.push({
-        slotNumber: slot,
-
-        status: occupiedSlots.includes(slot) ? "Occupied" : "Available",
-      });
-    }
-
-    res.json(slots);
-  } catch (error) {
-    console.error("Slot error:", error);
-
-    res.status(500).json({
-      message: "Database error.",
+      message: "Unable to process vehicle exit.",
     });
   }
 });
@@ -550,32 +494,32 @@ app.get("/api/slots", authenticate, async (req, res) => {
 // PARKING HISTORY
 // ==========================================
 
-app.get("/api/history", authenticate, async (req, res) => {
+app.get("/api/history", authenticateToken, async (req, res) => {
   try {
     const result = await db.query(`
-        SELECT
-          id,
-          "vehicleNumber",
-          "ownerName",
-          "vehicleType",
-          "slotNumber",
-          "entryTime",
-          "exitTime",
-          "duration",
-          "fee",
-          "exitDate"
-        FROM history
-        ORDER BY id DESC
-      `);
+      SELECT
+        id,
+        vehiclenumber AS "vehicleNumber",
+        ownername AS "ownerName",
+        vehicletype AS "vehicleType",
+        slotnumber AS "slotNumber",
+        entrytime AS "entryTime",
+        exittime AS "exitTime",
+        duration,
+        fee,
+        exitdate AS "exitDate"
+      FROM history
+      ORDER BY id DESC
+    `);
 
     res.json({
-      vehicles: result.rows,
+      history: result.rows,
     });
   } catch (error) {
     console.error("History error:", error);
 
     res.status(500).json({
-      message: "Database error.",
+      message: "Unable to load history.",
     });
   }
 });
@@ -584,67 +528,44 @@ app.get("/api/history", authenticate, async (req, res) => {
 // PARKING REPORT
 // ==========================================
 
-app.get("/api/report", authenticate, async (req, res) => {
+app.get("/api/report", authenticateToken, async (req, res) => {
   try {
-    const totalSlots = 8;
-
-    // ==========================================
-    // OCCUPIED SLOTS
-    // ==========================================
-
-    const occupiedResult = await db.query(`
-        SELECT COUNT(*)::int AS occupied
-        FROM vehicles
-      `);
-
-    const occupiedSlots = occupiedResult.rows[0].occupied;
-
-    const availableSlots = totalSlots - occupiedSlots;
-
-    // ==========================================
-    // TODAY'S EXITED VEHICLES
-    // ==========================================
+    const activeResult = await db.query(
+      "SELECT COUNT(*) AS count FROM vehicles",
+    );
 
     const todayResult = await db.query(`
-        SELECT COUNT(*)::int AS "todayVehicles"
-        FROM history
-        WHERE DATE("exitDate") = CURRENT_DATE
-      `);
-
-    const todayVehicles = todayResult.rows[0].todayVehicles;
-
-    // ==========================================
-    // TOTAL COLLECTION
-    // ==========================================
+      SELECT COUNT(*) AS count
+      FROM history
+      WHERE DATE(exitdate) = CURRENT_DATE
+    `);
 
     const collectionResult = await db.query(`
-        SELECT
-          COALESCE(SUM("fee"), 0)::numeric AS collection
-        FROM history
-      `);
+      SELECT COALESCE(SUM(fee), 0) AS total
+      FROM history
+      WHERE DATE(exitdate) = CURRENT_DATE
+    `);
 
-    const totalCollection = Number(collectionResult.rows[0].collection);
+    const occupiedSlots = Number(activeResult.rows[0].count);
 
-    // ==========================================
-    // RESPONSE
-    // ==========================================
+    const availableSlots = Math.max(0, TOTAL_SLOTS - occupiedSlots);
+
+    const todayVehicles = Number(todayResult.rows[0].count);
+
+    const totalCollection = Number(collectionResult.rows[0].total);
 
     res.json({
-      totalSlots: totalSlots,
-
+      totalSlots: TOTAL_SLOTS,
       occupiedSlots: occupiedSlots,
-
       availableSlots: availableSlots,
-
       todayVehicles: todayVehicles,
-
       totalCollection: totalCollection,
     });
   } catch (error) {
     console.error("Report error:", error);
 
     res.status(500).json({
-      message: "Database error.",
+      message: "Unable to load report.",
     });
   }
 });
@@ -658,42 +579,11 @@ app.get("/", (req, res) => {
 });
 
 // ==========================================
-// TIME CONVERTER
-// ==========================================
-
-function convertToMinutes(time) {
-  if (!time || !time.includes(":")) {
-    return 0;
-  }
-
-  const parts = time.split(":");
-
-  const hour = parseInt(parts[0], 10) || 0;
-
-  const minute = parseInt(parts[1], 10) || 0;
-
-  return hour * 60 + minute;
-}
-
-// ==========================================
 // START SERVER
 // ==========================================
 
-async function startServer() {
-  try {
-    // Test database connection
-    await db.query("SELECT 1");
-
-    console.log("PostgreSQL connection successful.");
-
-    await createDefaultAdmin();
-
-    app.listen(PORT, () => {
-      console.log(`Parking server running on port ${PORT}`);
-    });
-  } catch (error) {
-    console.error("Unable to start server:", error);
-  }
-}
-
-startServer();
+initializeDatabase().then(() => {
+  app.listen(PORT, () => {
+    console.log(`Parking Management System running on port ${PORT}`);
+  });
+});
