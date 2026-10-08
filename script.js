@@ -190,6 +190,8 @@ async function vehicleEntry() {
 
   updateReport();
 
+  updateParkedVehicles();
+
   setTimeout(function () {
     assignedSlotBox.innerHTML = "Assigned Slot: —";
   }, 3000);
@@ -381,6 +383,8 @@ async function vehicleExit() {
   updateReport();
 
   updateHistory();
+
+  updateParkedVehicles();
 }
 
 // ==========================================
@@ -395,9 +399,6 @@ async function updateDashboard() {
       return;
     }
 
-    // Accept either:
-    // { vehicles: [...] }
-    // OR [...]
     let vehicles = [];
 
     if (Array.isArray(data)) {
@@ -436,94 +437,7 @@ async function updateDashboard() {
 // UPDATE PARKING SLOTS
 // ==========================================
 
-function updateSlots(data) {
-
-    const vehicles = Array.isArray(data)
-        ? data
-        : (data.vehicles || []);
-
-    // Update parking slot status
-    for (let i = 1; i <= 8; i++) {
-
-        const slotId = "P" + String(i).padStart(2, "0");
-
-        const slot = document.getElementById(slotId);
-
-        if (!slot) continue;
-
-        const vehicle = vehicles.find(
-            v => v.slotNumber === slotId
-        );
-
-        if (vehicle) {
-
-            slot.classList.remove("available");
-            slot.classList.add("occupied");
-
-            slot.innerText =
-                `${slotId} - Occupied`;
-
-        } else {
-
-            slot.classList.remove("occupied");
-            slot.classList.add("available");
-
-            slot.innerText =
-                `${slotId} - Available`;
-        }
-    }
-
-
-    // ==========================================
-    // CURRENTLY PARKED VEHICLES
-    // ==========================================
-
-    const parkedList =
-        document.getElementById("parkedVehiclesList");
-
-    if (!parkedList) return;
-
-
-    // No vehicles currently parked
-    if (vehicles.length === 0) {
-
-        parkedList.innerHTML = `
-            <p class="no-vehicles">
-                No vehicles are currently parked.
-            </p>
-        `;
-
-        return;
-    }
-
-
-    // Display currently parked vehicles
-    parkedList.innerHTML = vehicles.map(vehicle => {
-
-        return `
-            <div class="parked-vehicle">
-
-                <div>
-                    🚗 <strong>${vehicle.vehicleNumber}</strong>
-                </div>
-
-                <div>
-                    👤 ${vehicle.ownerName}
-                </div>
-
-                <div>
-                    🅿️ <strong>${vehicle.slotNumber}</strong>
-                </div>
-
-                <div>
-                    🕐 ${vehicle.entryTime}
-                </div>
-
-            </div>
-        `;
-
-    }).join("");
-}
+async function updateSlots() {
   try {
     const data = await apiRequest("/api/vehicles");
 
@@ -538,6 +452,8 @@ function updateSlots(data) {
     } else if (Array.isArray(data.vehicles)) {
       vehicles = data.vehicles;
     }
+
+    // Update 8 parking slots
 
     for (let i = 1; i <= 8; i++) {
       const slotId = "P0" + i;
@@ -566,9 +482,77 @@ function updateSlots(data) {
         slot.innerText = slotId + " - Available";
       }
     }
+
+    // Update currently parked vehicles
+
+    updateParkedVehicles(vehicles);
   } catch (error) {
     console.error("Slot update error:", error);
   }
+}
+
+// ==========================================
+// CURRENTLY PARKED VEHICLES
+// ==========================================
+
+function updateParkedVehicles(vehicles) {
+  const parkedList = document.getElementById("parkedVehiclesList");
+
+  if (!parkedList) {
+    return;
+  }
+
+  // No vehicles
+
+  if (!vehicles || vehicles.length === 0) {
+    parkedList.innerHTML = `
+
+            <p class="no-vehicles">
+                No vehicles are currently parked.
+            </p>
+
+        `;
+
+    return;
+  }
+
+  // Show parked vehicles
+
+  parkedList.innerHTML = vehicles
+    .map(function (vehicle) {
+      return `
+
+                    <div class="parked-vehicle">
+
+                        <div>
+                            🚗
+                            <strong>
+                                ${vehicle.vehicleNumber}
+                            </strong>
+                        </div>
+
+                        <div>
+                            👤
+                            ${vehicle.ownerName}
+                        </div>
+
+                        <div>
+                            🅿️
+                            <strong>
+                                ${vehicle.slotNumber}
+                            </strong>
+                        </div>
+
+                        <div>
+                            🕐
+                            ${vehicle.entryTime}
+                        </div>
+
+                    </div>
+
+                `;
+    })
+    .join("");
 }
 
 // ==========================================
