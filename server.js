@@ -568,7 +568,9 @@ app.get("/api/history", authenticate, async (req, res) => {
         ORDER BY id DESC
       `);
 
-    res.json(result.rows);
+    res.json({
+      vehicles: result.rows,
+    });
   } catch (error) {
     console.error("History error:", error);
 
