@@ -1,0 +1,7 @@
+target/
+backend/target/
+node_modules/
+.env
+.env.*
+*.db
+*.sqlite
