@@ -1,9 +1,12 @@
+
 package com.parking;
 
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -29,7 +32,7 @@ public class ReportController {
         // Total parking slots
         int totalSlots = 8;
 
-        // Find currently occupied slots
+        // Currently occupied slots
         Set<String> occupied = new HashSet<>();
 
         vehicleRepository.findAll().forEach(vehicle ->
@@ -37,32 +40,60 @@ public class ReportController {
         );
 
         int occupiedSlots = occupied.size();
-
         int availableSlots = totalSlots - occupiedSlots;
 
-        // Calculate today's vehicles and collection
+        // Current date and month
         LocalDate today = LocalDate.now();
+        YearMonth currentMonth = YearMonth.now();
 
-        var todayHistory = historyRepository.findAll()
+        // Get all successfully paid records
+        var paidHistory = historyRepository.findAll()
                 .stream()
                 .filter(history ->
-                        history.getExitDate().toLocalDate().equals(today)
+                        "Paid".equalsIgnoreCase(history.getPaymentStatus())
+                        || "Confirmed".equalsIgnoreCase(history.getPaymentStatus())
+                )
+                .toList();
+
+        // Today's completed exits
+        var todayHistory = paidHistory.stream()
+                .filter(history ->
+                        history.getExitDate() != null
+                        && history.getExitDate().toLocalDate().equals(today)
                 )
                 .toList();
 
         int todayVehicles = todayHistory.size();
 
-        BigDecimal totalCollection = todayHistory.stream()
-                .map(ParkingHistory::getFee)
+        // Today's revenue
+        BigDecimal dailyRevenue = todayHistory.stream()
+                .map(history -> history.getFee() != null
+                        ? history.getFee()
+                        : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // Return dashboard information
+        // This month's revenue, based on payment date
+        BigDecimal monthlyRevenue = paidHistory.stream()
+                .filter(history -> {
+                    LocalDateTime paymentDate = history.getPaymentDate();
+
+                    return paymentDate != null
+                            && YearMonth.from(paymentDate).equals(currentMonth);
+                })
+                .map(history -> history.getFee() != null
+                        ? history.getFee()
+                        : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Return report information
         return Map.of(
                 "totalSlots", totalSlots,
                 "occupiedSlots", occupiedSlots,
                 "availableSlots", availableSlots,
                 "todayVehicles", todayVehicles,
-                "totalCollection", totalCollection
+                "totalCollection", dailyRevenue,
+                "dailyRevenue", dailyRevenue,
+                "monthlyRevenue", monthlyRevenue
         );
     }
 }

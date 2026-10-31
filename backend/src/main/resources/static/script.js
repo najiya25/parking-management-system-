@@ -3,14 +3,24 @@
 // BACKEND CONNECTED VERSION
 // ==========================================
 
-// ==========================================
-// CHECK LOGIN
-// ==========================================
-
 const token = localStorage.getItem("token");
 
 if (!token) {
   window.location.href = "login.html";
+}
+
+let currentHistoryFilter = "ALL";
+let allHistoryRecords = [];
+
+function normalizeVehicleNumber(value) {
+  const number = value.trim().toUpperCase().replace(/[\s-]/g, "");
+  const match = number.match(
+    /^([A-Z]{2})([0-9]{1,2})([A-Z]{1,3})([0-9]{1,4})$/,
+  );
+
+  if (!match) return null;
+
+  return `${match[1]}-${match[2]}-${match[3]}-${match[4]}`;
 }
 
 // ==========================================
@@ -21,12 +31,9 @@ async function apiRequest(url, options = {}) {
   try {
     const requestOptions = {
       ...options,
-
       headers: {
         "Content-Type": "application/json",
-
         Authorization: "Bearer " + localStorage.getItem("token"),
-
         ...(options.headers || {}),
       },
     };
@@ -35,9 +42,7 @@ async function apiRequest(url, options = {}) {
 
     if (response.status === 401 || response.status === 403) {
       localStorage.removeItem("token");
-
       window.location.href = "login.html";
-
       return null;
     }
 
@@ -45,14 +50,12 @@ async function apiRequest(url, options = {}) {
 
     if (!response.ok) {
       console.error("API error:", data);
-
       return data;
     }
 
     return data;
   } catch (error) {
     console.error("Connection error:", error);
-
     return null;
   }
 }
@@ -62,9 +65,7 @@ async function apiRequest(url, options = {}) {
 // ==========================================
 
 function showDashboard(dashboardId) {
-  const dashboards = document.querySelectorAll(".dashboard-section");
-
-  dashboards.forEach(function (dashboard) {
+  document.querySelectorAll(".dashboard-section").forEach(function (dashboard) {
     dashboard.classList.remove("active-dashboard");
   });
 
@@ -86,27 +87,12 @@ function showDashboard(dashboardId) {
     );
   });
 
-  if (clickedButton) {
-    clickedButton.classList.add("active-nav");
-  }
+  if (clickedButton) clickedButton.classList.add("active-nav");
 
-  // Refresh required data
-
-  if (dashboardId === "mainDashboard") {
-    updateDashboard();
-  }
-
-  if (dashboardId === "slotDashboard") {
-    updateSlots();
-  }
-
-  if (dashboardId === "reportDashboard") {
-    updateReport();
-  }
-
-  if (dashboardId === "historyDashboard") {
-    updateHistory();
-  }
+  if (dashboardId === "mainDashboard") updateDashboard();
+  if (dashboardId === "slotDashboard") updateSlots();
+  if (dashboardId === "reportDashboard") updateReport();
+  if (dashboardId === "historyDashboard") updateHistory();
 }
 
 // ==========================================
@@ -114,83 +100,58 @@ function showDashboard(dashboardId) {
 // ==========================================
 
 async function vehicleEntry() {
-  const vehicleNumber = document
-    .getElementById("vehicleNumber")
-    .value.trim()
-    .toUpperCase();
+  const vehicleNumber = normalizeVehicleNumber(
+    document.getElementById("vehicleNumber").value,
+  );
 
   const ownerName = document.getElementById("ownerName").value.trim();
-
   const vehicleType = document.getElementById("vehicleType").value;
-
   const entryTime = document.getElementById("entryTime").value;
 
   const message = document.getElementById("entryMessage");
-
   const assignedSlotBox = document.getElementById("assignedSlot");
 
-  if (
-    vehicleNumber === "" ||
-    ownerName === "" ||
-    vehicleType === "" ||
-    entryTime === ""
-  ) {
-    message.innerHTML = "Please fill all details.";
+  if (!vehicleNumber) {
+    message.innerHTML = "Invalid vehicle number. Example: KL-01-AB-1234.";
+    return;
+  }
 
+  if (!ownerName || !vehicleType || !entryTime) {
+    message.innerHTML = "Please fill all details.";
     return;
   }
 
   const data = await apiRequest("/api/entry", {
     method: "POST",
-
     body: JSON.stringify({
-      vehicleNumber: vehicleNumber,
-
-      ownerName: ownerName,
-
-      vehicleType: vehicleType,
-
-      entryTime: entryTime,
+      vehicleNumber,
+      ownerName,
+      vehicleType,
+      entryTime,
     }),
   });
 
   if (!data) {
     message.innerHTML = "Unable to connect to server.";
-
     return;
   }
 
   if (!data.vehicle) {
     message.innerHTML = data.message || "Unable to park vehicle.";
-
     return;
   }
 
-  const assignedSlot = data.vehicle.slotNumber;
-
-  assignedSlotBox.innerHTML = "Assigned Slot: " + assignedSlot;
-
+  assignedSlotBox.innerHTML = "Assigned Slot: " + data.vehicle.slotNumber;
   message.innerHTML = data.message || "Vehicle parked successfully.";
 
-  // Clear fields
-
   document.getElementById("vehicleNumber").value = "";
-
   document.getElementById("ownerName").value = "";
-
   document.getElementById("vehicleType").value = "";
-
   document.getElementById("entryTime").value = "";
 
-  // Refresh everything
-
   updateDashboard();
-
   updateSlots();
-
   updateReport();
-
-  updateParkedVehicles();
 
   setTimeout(function () {
     assignedSlotBox.innerHTML = "Assigned Slot: —";
@@ -202,16 +163,14 @@ async function vehicleEntry() {
 // ==========================================
 
 async function searchVehicle() {
-  const searchNumber = document
-    .getElementById("searchVehicle")
-    .value.trim()
-    .toUpperCase();
+  const searchNumber = normalizeVehicleNumber(
+    document.getElementById("searchVehicle").value,
+  );
 
   const result = document.getElementById("searchResult");
 
-  if (searchNumber === "") {
-    result.innerHTML = "Please enter a vehicle number.";
-
+  if (!searchNumber) {
+    result.innerHTML = "Invalid vehicle number. Example: KL-01-AB-1234.";
     return;
   }
 
@@ -221,170 +180,303 @@ async function searchVehicle() {
 
   if (!data) {
     result.innerHTML = "Unable to connect to server.";
-
     return;
   }
 
   if (!data.vehicle) {
     result.innerHTML = data.message || "Vehicle not found.";
-
     return;
   }
 
   const vehicle = data.vehicle;
 
   result.innerHTML = `
-
-        <div class="vehicle-info">
-
-            <p>
-                <strong>
-                    Vehicle Number:
-                </strong>
-
-                ${vehicle.vehicleNumber}
-            </p>
-
-            <p>
-                <strong>
-                    Owner Name:
-                </strong>
-
-                ${vehicle.ownerName}
-            </p>
-
-            <p>
-                <strong>
-                    Vehicle Type:
-                </strong>
-
-                ${vehicle.vehicleType}
-            </p>
-
-            <p>
-                <strong>
-                    Parking Slot:
-                </strong>
-
-                ${vehicle.slotNumber}
-            </p>
-
-            <p>
-                <strong>
-                    Entry Time:
-                </strong>
-
-                ${vehicle.entryTime}
-            </p>
-
-        </div>
-
-    `;
+    <div class="vehicle-info">
+      <h3>Vehicle Details</h3>
+      <p><strong>Vehicle Number:</strong> ${vehicle.vehicleNumber || "—"}</p>
+      <p><strong>Owner Name:</strong> ${vehicle.ownerName || "—"}</p>
+      <p><strong>Vehicle Type:</strong> ${vehicle.vehicleType || "—"}</p>
+      <p><strong>Parking Slot:</strong> ${vehicle.slotNumber || "—"}</p>
+      <p><strong>Entry Time:</strong> ${vehicle.entryTime || "—"}</p>
+    </div>
+  `;
 }
 
 // ==========================================
-// VEHICLE EXIT
+// VEHICLE EXIT - FEE PREVIEW
 // ==========================================
 
 async function vehicleExit() {
-  const exitVehicle = document
-    .getElementById("exitVehicle")
-    .value.trim()
-    .toUpperCase();
+  const exitVehicle = normalizeVehicleNumber(
+    document.getElementById("exitVehicle").value,
+  );
 
   const exitTime = document.getElementById("exitTime").value;
-
   const result = document.getElementById("exitResult");
 
-  if (exitVehicle === "" || exitTime === "") {
-    result.innerHTML = "Please enter vehicle number and exit time.";
-
+  if (!exitVehicle) {
+    result.innerHTML = "Enter a valid vehicle number, e.g. KL-01-AB-1234.";
     return;
   }
 
-  const data = await apiRequest("/api/exit", {
-    method: "POST",
+  if (!exitTime) {
+    result.innerHTML = "Please enter the exit time.";
+    return;
+  }
 
+  result.innerHTML = "<p>Calculating parking fee...</p>";
+
+  const data = await apiRequest("/api/exit/preview", {
+    method: "POST",
     body: JSON.stringify({
       vehicleNumber: exitVehicle,
-
-      exitTime: exitTime,
+      exitTime,
     }),
   });
 
   if (!data) {
-    result.innerHTML = "Unable to connect to server.";
-
+    result.innerHTML = "<p>Unable to connect to server.</p>";
     return;
   }
 
   if (!data.vehicle) {
-    result.innerHTML = data.message || "Vehicle not found.";
-
+    result.innerHTML = `<p>${data.message || "Vehicle not found."}</p>`;
     return;
   }
 
   const vehicle = data.vehicle;
 
-  const hours = data.duration || 1;
-
-  const fee = data.fee || 0;
+  window.pendingExit = {
+    vehicleNumber: exitVehicle,
+    exitTime,
+    fee: Number(data.fee || 0),
+    duration: Number(data.duration || 1),
+  };
 
   result.innerHTML = `
+    <div class="vehicle-info">
+      <h3>Parking Details</h3>
+      <p><strong>Vehicle Number:</strong> ${vehicle.vehicleNumber}</p>
+      <p><strong>Owner:</strong> ${vehicle.ownerName || "—"}</p>
+      <p><strong>Parking Slot:</strong> ${vehicle.slotNumber || "—"}</p>
+      <p><strong>Duration:</strong> ${window.pendingExit.duration} hour(s)</p>
+      <p><strong>Parking Fee:</strong> ₹${window.pendingExit.fee.toFixed(2)}</p>
 
-        <div class="vehicle-info">
+      <hr>
 
-            <p>
-                <strong>
-                    Vehicle Number:
-                </strong>
+      <h3>Select Payment Method</h3>
 
-                ${vehicle.vehicleNumber}
-            </p>
+      <label><input type="radio" name="paymentMethod" value="UPI"> UPI</label>
+      <br>
+      <label><input type="radio" name="paymentMethod" value="CARD"> Card</label>
+      <br>
+      <label><input type="radio" name="paymentMethod" value="CASH"> Cash</label>
 
-            <p>
-                <strong>
-                    Parking Slot:
-                </strong>
+      <p style="margin-top:10px;">
+        <strong>Demo:</strong> No real money is transferred.
+        Payment status must be recorded manually.
+      </p>
 
-                ${vehicle.slotNumber}
-            </p>
+      <button type="button" onclick="savePaymentAttempt('PENDING')">
+        Save as Pending
+      </button>
 
-            <p>
-                <strong>
-                    Duration:
-                </strong>
+      <button type="button" onclick="savePaymentAttempt('FAILED')">
+        Mark as Failed
+      </button>
 
-                ${hours} hour(s)
-            </p>
+      <button type="button" onclick="confirmVehiclePayment()">
+        Confirm Payment
+      </button>
 
-            <p>
-                <strong>
-                    Parking Fee:
-                </strong>
+      <p id="paymentMessage"></p>
+    </div>
+  `;
+}
 
-                ₹${fee}
-            </p>
+// ==========================================
+// GET SELECTED PAYMENT METHOD
+// ==========================================
 
-        </div>
+function getSelectedPaymentMethod() {
+  const selected = document.querySelector(
+    'input[name="paymentMethod"]:checked',
+  );
 
+  return selected ? selected.value : null;
+}
+
+// ==========================================
+// SAVE PENDING OR FAILED PAYMENT
+// ==========================================
+
+async function savePaymentAttempt(status) {
+  const pendingExit = window.pendingExit;
+  const paymentMessage = document.getElementById("paymentMessage");
+
+  if (!pendingExit) {
+    alert("Please calculate the parking fee first.");
+    return;
+  }
+
+  const paymentMethod = getSelectedPaymentMethod();
+
+  if (!paymentMethod) {
+    paymentMessage.innerHTML = "Please select a payment method.";
+    return;
+  }
+
+  const message =
+    status === "PENDING"
+      ? "Save this payment as Pending?"
+      : "Mark this payment as Failed?";
+
+  if (!confirm(message)) return;
+
+  paymentMessage.innerHTML = "Saving payment record...";
+
+  const data = await apiRequest("/api/exit/attempt", {
+    method: "POST",
+    body: JSON.stringify({
+      vehicleNumber: pendingExit.vehicleNumber,
+      exitTime: pendingExit.exitTime,
+      fee: pendingExit.fee,
+      duration: pendingExit.duration,
+      paymentMethod,
+      paymentStatus: status,
+    }),
+  });
+
+  if (!data) {
+    paymentMessage.innerHTML = "Unable to connect to server.";
+    return;
+  }
+
+  if (data.message) {
+    paymentMessage.innerHTML = data.message;
+  } else {
+    paymentMessage.innerHTML = "Payment attempt saved.";
+  }
+
+  // The vehicle remains parked for Pending and Failed payments.
+  updateHistory();
+  updateDashboard();
+  updateSlots();
+  updateReport();
+}
+
+// ==========================================
+// CONFIRM PAYMENT
+// ==========================================
+
+async function confirmVehiclePayment(
+  historyId = null,
+  vehicleNumber = null,
+  exitTime = null,
+  savedMethod = null,
+) {
+  let pendingExit = window.pendingExit;
+
+  if (historyId) {
+    const promptedTime = prompt(
+      "Enter the exit time (HH:MM) for this payment:",
+    );
+
+    if (!promptedTime) return;
+
+    pendingExit = {
+      vehicleNumber,
+      exitTime: promptedTime,
+    };
+  }
+
+  if (!pendingExit) {
+    alert("Please calculate the parking fee first.");
+    return;
+  }
+
+  const paymentMessage = document.getElementById("paymentMessage");
+  const paymentMethod = historyId ? savedMethod : getSelectedPaymentMethod();
+
+  if (!paymentMethod) {
+    if (paymentMessage) {
+      paymentMessage.innerHTML = "Please select a payment method.";
+    } else {
+      alert("Payment method is missing.");
+    }
+    return;
+  }
+
+  if (
+    !confirm(
+      "Confirm that the " + paymentMethod + " payment has been received?",
+    )
+  ) {
+    return;
+  }
+
+  if (paymentMessage) paymentMessage.innerHTML = "Recording payment...";
+
+  const requestBody = {
+    vehicleNumber: pendingExit.vehicleNumber,
+    exitTime: pendingExit.exitTime,
+    paymentMethod,
+  };
+
+  if (historyId) {
+    requestBody.historyId = historyId;
+  }
+
+  const data = await apiRequest("/api/exit/confirm", {
+    method: "POST",
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!data) {
+    if (paymentMessage) {
+      paymentMessage.innerHTML = "Unable to connect to server.";
+    }
+    return;
+  }
+
+  if (!data.vehicle) {
+    if (paymentMessage) {
+      paymentMessage.innerHTML = data.message || "Payment confirmation failed.";
+    } else {
+      alert(data.message || "Payment confirmation failed.");
+    }
+    return;
+  }
+
+  const vehicle = data.vehicle;
+
+  if (!historyId) {
+    document.getElementById("exitResult").innerHTML = `
+      <div class="vehicle-info">
+        <h3>Payment Receipt</h3>
+        <p><strong>Vehicle Number:</strong> ${vehicle.vehicleNumber}</p>
+        <p><strong>Owner:</strong> ${vehicle.ownerName || "—"}</p>
+        <p><strong>Parking Slot:</strong> ${vehicle.slotNumber || "—"}</p>
+        <p><strong>Duration:</strong> ${data.duration || pendingExit.duration} hour(s)</p>
+        <p><strong>Amount Paid:</strong> ₹${Number(data.fee || pendingExit.fee).toFixed(2)}</p>
+        <p><strong>Payment Method:</strong> ${data.paymentMethod || paymentMethod}</p>
+        <p><strong>Payment Status:</strong> ${data.paymentStatus || "Paid"}</p>
+        <h3>Vehicle Exit Completed!</h3>
+        <button type="button" onclick="window.print()">Print Receipt</button>
+      </div>
     `;
 
-  document.getElementById("exitVehicle").value = "";
-
-  document.getElementById("exitTime").value = "";
-
-  // Refresh data
+    document.getElementById("exitVehicle").value = "";
+    document.getElementById("exitTime").value = "";
+    window.pendingExit = null;
+  } else {
+    alert("Payment confirmed and vehicle exit completed.");
+  }
 
   updateDashboard();
-
   updateSlots();
-
   updateReport();
-
   updateHistory();
-
-  updateParkedVehicles();
 }
 
 // ==========================================
@@ -392,44 +484,28 @@ async function vehicleExit() {
 // ==========================================
 
 async function updateDashboard() {
-  try {
-    const data = await apiRequest("/api/vehicles");
+  const data = await apiRequest("/api/vehicles");
 
-    if (!data) {
-      return;
-    }
+  if (!data) return;
 
-    let vehicles = [];
+  let vehicles = [];
 
-    if (Array.isArray(data)) {
-      vehicles = data;
-    } else if (Array.isArray(data.vehicles)) {
-      vehicles = data.vehicles;
-    }
+  if (Array.isArray(data)) {
+    vehicles = data;
+  } else if (Array.isArray(data.vehicles)) {
+    vehicles = data.vehicles;
+  }
 
-    const totalSlots = 8;
+  const totalSlots = 8;
+  const occupiedSlots = vehicles.length;
+  const availableSlots = Math.max(0, totalSlots - occupiedSlots);
 
-    const occupiedSlots = vehicles.length;
+  const stats = document.querySelectorAll(".stat h3");
 
-    const availableSlots = Math.max(0, totalSlots - occupiedSlots);
-
-    console.log("Vehicles:", vehicles);
-
-    console.log("Occupied:", occupiedSlots);
-
-    console.log("Available:", availableSlots);
-
-    const stats = document.querySelectorAll(".stat h3");
-
-    if (stats.length >= 3) {
-      stats[0].innerText = totalSlots;
-
-      stats[1].innerText = occupiedSlots;
-
-      stats[2].innerText = availableSlots;
-    }
-  } catch (error) {
-    console.error("Dashboard error:", error);
+  if (stats.length >= 3) {
+    stats[0].innerText = totalSlots;
+    stats[1].innerText = occupiedSlots;
+    stats[2].innerText = availableSlots;
   }
 }
 
@@ -438,57 +514,40 @@ async function updateDashboard() {
 // ==========================================
 
 async function updateSlots() {
-  try {
-    const data = await apiRequest("/api/vehicles");
+  const data = await apiRequest("/api/vehicles");
 
-    if (!data) {
-      return;
-    }
+  if (!data) return;
 
-    let vehicles = [];
+  let vehicles = [];
 
-    if (Array.isArray(data)) {
-      vehicles = data;
-    } else if (Array.isArray(data.vehicles)) {
-      vehicles = data.vehicles;
-    }
-
-    // Update 8 parking slots
-
-    for (let i = 1; i <= 8; i++) {
-      const slotId = "P0" + i;
-
-      const slot = document.getElementById(slotId);
-
-      if (!slot) {
-        continue;
-      }
-
-      const occupied = vehicles.some(function (vehicle) {
-        return vehicle.slotNumber === slotId;
-      });
-
-      if (occupied) {
-        slot.classList.remove("available");
-
-        slot.classList.add("occupied");
-
-        slot.innerText = slotId + " - Occupied";
-      } else {
-        slot.classList.remove("occupied");
-
-        slot.classList.add("available");
-
-        slot.innerText = slotId + " - Available";
-      }
-    }
-
-    // Update currently parked vehicles
-
-    updateParkedVehicles(vehicles);
-  } catch (error) {
-    console.error("Slot update error:", error);
+  if (Array.isArray(data)) {
+    vehicles = data;
+  } else if (Array.isArray(data.vehicles)) {
+    vehicles = data.vehicles;
   }
+
+  for (let i = 1; i <= 8; i++) {
+    const slotId = "P0" + i;
+    const slot = document.getElementById(slotId);
+
+    if (!slot) continue;
+
+    const occupied = vehicles.some(function (vehicle) {
+      return vehicle.slotNumber === slotId;
+    });
+
+    if (occupied) {
+      slot.classList.remove("available");
+      slot.classList.add("occupied");
+      slot.innerText = slotId + " - Occupied";
+    } else {
+      slot.classList.remove("occupied");
+      slot.classList.add("available");
+      slot.innerText = slotId + " - Available";
+    }
+  }
+
+  updateParkedVehicles(vehicles);
 }
 
 // ==========================================
@@ -498,59 +557,24 @@ async function updateSlots() {
 function updateParkedVehicles(vehicles) {
   const parkedList = document.getElementById("parkedVehiclesList");
 
-  if (!parkedList) {
-    return;
-  }
-
-  // No vehicles
+  if (!parkedList) return;
 
   if (!vehicles || vehicles.length === 0) {
-    parkedList.innerHTML = `
-
-            <p class="no-vehicles">
-                No vehicles are currently parked.
-            </p>
-
-        `;
-
+    parkedList.innerHTML =
+      '<p class="no-vehicles">No vehicles are currently parked.</p>';
     return;
   }
-
-  // Show parked vehicles
 
   parkedList.innerHTML = vehicles
     .map(function (vehicle) {
       return `
-
-                    <div class="parked-vehicle">
-
-                        <div>
-                            🚗
-                            <strong>
-                                ${vehicle.vehicleNumber}
-                            </strong>
-                        </div>
-
-                        <div>
-                            👤
-                            ${vehicle.ownerName}
-                        </div>
-
-                        <div>
-                            🅿️
-                            <strong>
-                                ${vehicle.slotNumber}
-                            </strong>
-                        </div>
-
-                        <div>
-                            🕐
-                            ${vehicle.entryTime}
-                        </div>
-
-                    </div>
-
-                `;
+      <div class="parked-vehicle">
+        <div>🚗 <strong>${vehicle.vehicleNumber || "—"}</strong></div>
+        <div>👤 ${vehicle.ownerName || "—"}</div>
+        <div>🅿️ <strong>${vehicle.slotNumber || "—"}</strong></div>
+        <div>🕐 ${vehicle.entryTime || "—"}</div>
+      </div>
+    `;
     })
     .join("");
 }
@@ -560,154 +584,205 @@ function updateParkedVehicles(vehicles) {
 // ==========================================
 
 async function updateReport() {
-  try {
-    const data = await apiRequest("/api/report");
+  const data = await apiRequest("/api/report");
 
-    if (!data) {
-      return;
-    }
+  if (!data) return;
 
-    const totalSlots = Number(data.totalSlots || 8);
+  const totalSlots = Number(data.totalSlots ?? 8);
+  const occupiedSlots = Number(data.occupiedSlots ?? data.occupied ?? 0);
+  const availableSlots = Math.max(0, totalSlots - occupiedSlots);
+  const todayVehicles = Number(data.todayVehicles ?? 0);
+  const collection = Number(data.totalCollection ?? data.collection ?? 0);
 
-    const occupiedSlots = Number(data.occupiedSlots || data.occupied || 0);
+  const reportNumbers = document.querySelectorAll("#reportDashboard p");
 
-    const availableSlots = Math.max(0, totalSlots - occupiedSlots);
+  if (reportNumbers.length >= 5) {
+    reportNumbers[0].innerText = "Total Slots: " + totalSlots;
+    reportNumbers[1].innerText = "Occupied Slots: " + occupiedSlots;
+    reportNumbers[2].innerText = "Available Slots: " + availableSlots;
+    reportNumbers[3].innerText = "Today's Vehicles: " + todayVehicles;
+    reportNumbers[4].innerText = "Total Collection: ₹" + collection.toFixed(2);
+  }
 
-    const todayVehicles = Number(data.todayVehicles || 0);
+  const dailyBox = document.getElementById("dailyRevenue");
+  const monthlyBox = document.getElementById("monthlyRevenue");
 
-    const collection = Number(data.totalCollection || data.collection || 0);
+  if (dailyBox) {
+    dailyBox.innerHTML =
+      "<h3>Daily Payment Revenue</h3><p>₹" +
+      Number(data.dailyRevenue ?? 0).toFixed(2) +
+      "</p>";
+  }
 
-    const reportNumbers = document.querySelectorAll("#reportDashboard p");
-
-    if (reportNumbers.length >= 5) {
-      reportNumbers[0].innerText = "Total Slots: " + totalSlots;
-
-      reportNumbers[1].innerText = "Occupied Slots: " + occupiedSlots;
-
-      reportNumbers[2].innerText = "Available Slots: " + availableSlots;
-
-      reportNumbers[3].innerText = "Today's Vehicles: " + todayVehicles;
-
-      reportNumbers[4].innerText = "Total Collection: ₹" + collection;
-    }
-  } catch (error) {
-    console.error("Report error:", error);
+  if (monthlyBox) {
+    monthlyBox.innerHTML =
+      "<h3>Monthly Payment Revenue</h3><p>₹" +
+      Number(data.monthlyRevenue ?? 0).toFixed(2) +
+      "</p>";
   }
 }
 
 // ==========================================
-// UPDATE HISTORY
+// HISTORY DATE FORMATTING
+// ==========================================
+
+function formatHistoryDateTime(dateValue, timeFallback) {
+  if (dateValue) {
+    const date = new Date(dateValue);
+
+    if (!isNaN(date.getTime())) {
+      return {
+        date: date.toLocaleDateString("en-IN"),
+        time: date.toLocaleTimeString("en-IN", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        }),
+      };
+    }
+  }
+
+  if (timeFallback) {
+    const time = new Date("1970-01-01T" + timeFallback);
+
+    if (!isNaN(time.getTime())) {
+      return {
+        date: "—",
+        time: time.toLocaleTimeString("en-IN", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        }),
+      };
+    }
+  }
+
+  return { date: "—", time: "—" };
+}
+
+// ==========================================
+// HISTORY FILTERS
+// ==========================================
+
+function filterHistory(filter) {
+  currentHistoryFilter = filter;
+  displayHistory();
+}
+
+function getHistoryStatus(record) {
+  const status = String(record.paymentStatus || "PENDING")
+    .trim()
+    .toUpperCase();
+
+  if (status === "PAID" || status === "CONFIRMED") {
+    return "CONFIRMED";
+  }
+
+  if (status === "FAILED") return "FAILED";
+
+  return "PENDING";
+}
+
+// ==========================================
+// DISPLAY HISTORY
+// ==========================================
+
+function displayHistory() {
+  const historyList = document.getElementById("historyList");
+
+  if (!historyList) return;
+
+  const filteredHistory = allHistoryRecords.filter(function (record) {
+    if (currentHistoryFilter === "ALL") return true;
+
+    return getHistoryStatus(record) === currentHistoryFilter;
+  });
+
+  if (filteredHistory.length === 0) {
+    historyList.innerHTML =
+      "<p>No " +
+      currentHistoryFilter.toLowerCase() +
+      " payment records found.</p>";
+    return;
+  }
+
+  historyList.innerHTML = filteredHistory
+    .map(function (vehicle) {
+      const entry = formatHistoryDateTime(vehicle.entryDate, vehicle.entryTime);
+
+      const exit = formatHistoryDateTime(vehicle.exitDate, vehicle.exitTime);
+
+      const status = getHistoryStatus(vehicle);
+      const historyId = vehicle.id ?? vehicle.historyId;
+
+      const confirmButton =
+        status !== "CONFIRMED" && historyId != null
+          ? `<button type="button"
+             onclick="confirmVehiclePayment(${Number(historyId)},
+               '${vehicle.vehicleNumber}',
+               null,
+               '${vehicle.paymentMethod || ""}')">
+             Confirm Payment
+           </button>`
+          : "";
+
+      return `
+      <div class="vehicle-info">
+        <h3>Vehicle Parking Record</h3>
+
+        <p><strong>Vehicle Number:</strong> ${vehicle.vehicleNumber || "—"}</p>
+        <p><strong>Owner Name:</strong> ${vehicle.ownerName || "—"}</p>
+        <p><strong>Vehicle Type:</strong> ${vehicle.vehicleType || "—"}</p>
+        <p><strong>Parking Slot:</strong> ${vehicle.slotNumber || "—"}</p>
+
+        <hr>
+
+        <p><strong>Entry Date:</strong> ${entry.date}</p>
+        <p><strong>Entry Time:</strong> ${entry.time}</p>
+        <p><strong>Exit Date:</strong> ${exit.date}</p>
+        <p><strong>Exit Time:</strong> ${exit.time}</p>
+
+        <hr>
+
+        <p><strong>Duration:</strong> ${vehicle.duration ?? "—"} hour(s)</p>
+        <p><strong>Parking Fee:</strong> ₹${Number(vehicle.fee || 0).toFixed(2)}</p>
+        <p><strong>Payment Method:</strong> ${vehicle.paymentMethod || "—"}</p>
+        <p><strong>Payment Status:</strong> ${status}</p>
+
+        ${confirmButton}
+      </div>
+    `;
+    })
+    .join("");
+}
+
+// ==========================================
+// LOAD HISTORY FROM BACKEND
 // ==========================================
 
 async function updateHistory() {
   const historyList = document.getElementById("historyList");
 
-  if (!historyList) {
+  if (!historyList) return;
+
+  historyList.innerHTML = "<p>Loading parking history...</p>";
+
+  const data = await apiRequest("/api/history");
+
+  if (!data) {
+    historyList.innerHTML = "<p>Unable to load parking history.</p>";
     return;
   }
 
-  try {
-    const data = await apiRequest("/api/history");
-
-    if (!data) {
-      return;
-    }
-
-    let history = [];
-
-    if (Array.isArray(data)) {
-      history = data;
-    } else if (Array.isArray(data.history)) {
-      history = data.history;
-    }
-
-    if (history.length === 0) {
-      historyList.innerHTML = "<p>No vehicle history available.</p>";
-
-      return;
-    }
-
-    historyList.innerHTML = "";
-
-    history.forEach(function (vehicle) {
-      historyList.innerHTML += `
-
-                    <div class="vehicle-info">
-
-                        <p>
-                            <strong>
-                                Vehicle Number:
-                            </strong>
-
-                            ${vehicle.vehicleNumber || "—"}
-                        </p>
-
-                        <p>
-                            <strong>
-                                Owner Name:
-                            </strong>
-
-                            ${vehicle.ownerName || "—"}
-                        </p>
-
-                        <p>
-                            <strong>
-                                Vehicle Type:
-                            </strong>
-
-                            ${vehicle.vehicleType || "—"}
-                        </p>
-
-                        <p>
-                            <strong>
-                                Parking Slot:
-                            </strong>
-
-                            ${vehicle.slotNumber || "—"}
-                        </p>
-
-                        <p>
-                            <strong>
-                                Entry Time:
-                            </strong>
-
-                            ${vehicle.entryTime || "—"}
-                        </p>
-
-                        <p>
-                            <strong>
-                                Exit Time:
-                            </strong>
-
-                            ${vehicle.exitTime || "—"}
-                        </p>
-
-                        <p>
-                            <strong>
-                                Duration:
-                            </strong>
-
-                            ${vehicle.duration || 0}
-                            hour(s)
-                        </p>
-
-                        <p>
-                            <strong>
-                                Parking Fee:
-                            </strong>
-
-                            ₹${Number(vehicle.fee || 0)}
-                        </p>
-
-                    </div>
-
-                `;
-    });
-  } catch (error) {
-    console.error("History error:", error);
-
-    historyList.innerHTML = "<p>Unable to load parking history.</p>";
+  if (Array.isArray(data)) {
+    allHistoryRecords = data;
+  } else if (Array.isArray(data.history)) {
+    allHistoryRecords = data.history;
+  } else {
+    allHistoryRecords = [];
   }
+
+  displayHistory();
 }
 
 // ==========================================
@@ -715,13 +790,9 @@ async function updateHistory() {
 // ==========================================
 
 function logout() {
-  const confirmLogout = confirm("Are you sure you want to logout?");
-
-  if (confirmLogout) {
+  if (confirm("Are you sure you want to logout?")) {
     localStorage.removeItem("token");
-
     localStorage.removeItem("username");
-
     window.location.href = "login.html";
   }
 }
@@ -732,12 +803,8 @@ function logout() {
 
 window.onload = function () {
   updateDashboard();
-
   updateSlots();
-
   updateReport();
-
   updateHistory();
-
   showDashboard("mainDashboard");
 };

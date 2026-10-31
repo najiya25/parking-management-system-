@@ -1,3 +1,4 @@
+
 package com.parking;
 
 import org.springframework.http.HttpStatus;
@@ -6,6 +7,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @RestController
 @RequestMapping("/api")
@@ -20,11 +23,7 @@ public class VehicleController {
     // Display all currently parked vehicles
     @GetMapping("/vehicles")
     public Map<String, Object> getVehicles() {
-
-        return Map.of(
-                "vehicles",
-                vehicleRepository.findAll()
-        );
+        return Map.of("vehicles", vehicleRepository.findAll());
     }
 
     // Register a new vehicle
@@ -47,11 +46,36 @@ public class VehicleController {
             );
         }
 
-        vehicleNumber = vehicleNumber.trim().toUpperCase();
+        // Convert to uppercase and remove spaces and hyphens
+        String number = vehicleNumber
+                .trim()
+                .toUpperCase()
+                .replaceAll("[\\s-]", "");
+
+        // Validate standard Indian vehicle registration format
+        Pattern pattern = Pattern.compile(
+                "^([A-Z]{2})([0-9]{1,2})([A-Z]{1,3})([0-9]{1,4})$"
+        );
+
+        Matcher matcher = pattern.matcher(number);
+
+        if (!matcher.matches()) {
+            return ResponseEntity.badRequest().body(
+                    Map.of(
+                            "message",
+                            "Invalid vehicle number. Enter a valid Indian number, for example KL-01-AB-1234."
+                    )
+            );
+        }
+
+        // Store every number in the same format
+        vehicleNumber = matcher.group(1) + "-"
+                + matcher.group(2) + "-"
+                + matcher.group(3) + "-"
+                + matcher.group(4);
 
         // Check whether vehicle is already parked
         if (vehicleRepository.existsByVehicleNumber(vehicleNumber)) {
-
             return ResponseEntity.badRequest().body(
                     Map.of("message", "This vehicle is already parked.")
             );
@@ -67,7 +91,6 @@ public class VehicleController {
         String availableSlot = null;
 
         for (int i = 1; i <= 8; i++) {
-
             String slot = String.format("P%02d", i);
 
             if (!occupiedSlots.contains(slot)) {
@@ -77,7 +100,6 @@ public class VehicleController {
         }
 
         if (availableSlot == null) {
-
             return ResponseEntity.status(HttpStatus.CONFLICT).body(
                     Map.of("message", "Parking is full. No slots available.")
             );

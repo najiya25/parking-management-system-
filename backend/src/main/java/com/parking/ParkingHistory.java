@@ -1,3 +1,4 @@
+
 package com.parking;
 
 import jakarta.persistence.*;
@@ -27,17 +28,28 @@ public class ParkingHistory {
     @Column(name = "entrytime", nullable = false)
     private String entryTime;
 
-    @Column(name = "exittime", nullable = false)
+    @Column(name = "exittime")
     private String exitTime;
 
-    @Column(nullable = false)
     private Integer duration;
 
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal fee;
 
-    @Column(name = "exitdate", nullable = false)
+    @Column(name = "entrydate")
+    private LocalDateTime entryDate;
+
+    @Column(name = "exitdate")
     private LocalDateTime exitDate;
+
+    @Column(name = "paymentmethod")
+    private String paymentMethod;
+
+    @Column(name = "paymentstatus")
+    private String paymentStatus = "Pending";
+
+    @Column(name = "paymentdate")
+    private LocalDateTime paymentDate;
 
     public ParkingHistory() {
     }
@@ -114,11 +126,43 @@ public class ParkingHistory {
         this.fee = fee;
     }
 
+    public LocalDateTime getEntryDate() {
+        return entryDate;
+    }
+
+    public void setEntryDate(LocalDateTime entryDate) {
+        this.entryDate = entryDate;
+    }
+
     public LocalDateTime getExitDate() {
         return exitDate;
     }
 
     public void setExitDate(LocalDateTime exitDate) {
         this.exitDate = exitDate;
+    }
+
+    public String getPaymentMethod() {
+        return paymentMethod;
+    }
+
+    public void setPaymentMethod(String paymentMethod) {
+        this.paymentMethod = paymentMethod;
+    }
+
+    public String getPaymentStatus() {
+        return paymentStatus;
+    }
+
+    public void setPaymentStatus(String paymentStatus) {
+        this.paymentStatus = paymentStatus;
+    }
+
+    public LocalDateTime getPaymentDate() {
+        return paymentDate;
+    }
+
+    public void setPaymentDate(LocalDateTime paymentDate) {
+        this.paymentDate = paymentDate;
     }
 }

@@ -4,211 +4,108 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>Parking Management System</title>
-
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-    <!-- Header -->
     <header>
         <h1>🚗 Parking Management System</h1>
         <p>Smart Parking Management</p>
     </header>
+
     <nav class="dashboard-nav">
-        <!-- Dashboard Navigation -->
-        <button onclick="showDashboard('mainDashboard')">
-            🏠 Dashboard
-        </button>
-
-        <button onclick="showDashboard('entryDashboard')">
-            🚘 Vehicle Entry
-        </button>
-
-        <button onclick="showDashboard('slotDashboard')">
-            🅿️ Slot Status
-        </button>
-
-        <button onclick="showDashboard('exitDashboard')">
-            🚪 Vehicle Exit
-        </button>
-
-        <button onclick="showDashboard('searchDashboard')">
-            🔍 Search Vehicle
-        </button>
-
-        <button onclick="showDashboard('reportDashboard')">
-            📊 Parking Report
-        </button>
-
-        <button onclick="showDashboard('historyDashboard')">
-            📜 Parking History
-        </button>
-
-        <button onclick="logout()">
-            🚪 Logout
-        </button>
-
+        <button onclick="showDashboard('mainDashboard')">🏠 Dashboard</button>
+        <button onclick="showDashboard('entryDashboard')">🚘 Vehicle Entry</button>
+        <button onclick="showDashboard('slotDashboard')">🅿️ Slot Status</button>
+        <button onclick="showDashboard('exitDashboard')">🚪 Vehicle Exit</button>
+        <button onclick="showDashboard('searchDashboard')">🔍 Search Vehicle</button>
+        <button onclick="showDashboard('reportDashboard')">📊 Parking Report</button>
+        <button onclick="showDashboard('historyDashboard')">📜 Parking History</button>
+        <button onclick="logout()">🚪 Logout</button>
     </nav>
+
     <div class="container">
 
         <!-- Dashboard -->
         <div id="mainDashboard" class="card dashboard-section">
-
             <h2>Dashboard</h2>
-
             <div class="stats">
-
                 <div class="stat">
                     <h3>8</h3>
                     <p>Total Slots</p>
                 </div>
-
                 <div class="stat">
                     <h3>0</h3>
                     <p>Occupied</p>
                 </div>
-
                 <div class="stat">
                     <h3>8</h3>
                     <p>Available</p>
                 </div>
-
             </div>
-
         </div>
-
 
         <!-- Vehicle Entry -->
         <div id="entryDashboard" class="card dashboard-section">
-
             <h2>🚘 Vehicle Entry</h2>
 
             <input type="text" id="vehicleNumber" placeholder="Vehicle Number">
-
             <input type="text" id="ownerName" placeholder="Owner Name">
 
             <div class="fee-box">
                 <h3>Parking Fees</h3>
-
                 <p>Bike - ₹10 / hour</p>
                 <p>Auto - ₹15 / hour</p>
                 <p>Car - ₹20 / hour</p>
                 <p>Van - ₹25 / hour</p>
             </div>
 
-
             <select id="vehicleType">
-
-                <option value="">
-                    Select Vehicle Type
-                </option>
-
-                <option value="Car">
-                    Car
-                </option>
-
-                <option value="Bike">
-                    Bike
-                </option>
-
-                <option value="Auto">
-                    Auto
-                </option>
-
-                <option value="Van">
-                    Van
-                </option>
-
+                <option value="">Select Vehicle Type</option>
+                <option value="Car">Car</option>
+                <option value="Bike">Bike</option>
+                <option value="Auto">Auto</option>
+                <option value="Van">Van</option>
             </select>
-
 
             <div class="input-group">
                 <input type="text" id="entryTime" placeholder="Entry Time" onfocus="this.type='time'"
                     onblur="if(!this.value)this.type='text'" required>
             </div>
 
+            <div id="assignedSlot" class="fee">Assigned Slot: —</div>
 
-            <!-- Automatically assigned slot -->
-            <div id="assignedSlot" class="fee">
-                Assigned Slot: —
-            </div>
-
-
-            <button onclick="vehicleEntry()">
-                Vehicle Entry
-            </button>
-
-
+            <button onclick="vehicleEntry()">Vehicle Entry</button>
             <p id="entryMessage"></p>
-
         </div>
-
 
         <!-- Parking Slot Status -->
         <div id="slotDashboard" class="card dashboard-section">
-
             <h2>🅿️ Parking Slot Status</h2>
 
             <div class="slots">
-
-                <div id="P01" class="slot available">
-                    P01 - Available
-                </div>
-
-                <div id="P02" class="slot available">
-                    P02 - Available
-                </div>
-
-                <div id="P03" class="slot available">
-                    P03 - Available
-                </div>
-
-                <div id="P04" class="slot available">
-                    P04 - Available
-                </div>
-
-                <div id="P05" class="slot available">
-                    P05 - Available
-                </div>
-
-                <div id="P06" class="slot available">
-                    P06 - Available
-                </div>
-
-                <div id="P07" class="slot available">
-                    P07 - Available
-                </div>
-
-                <div id="P08" class="slot available">
-                    P08 - Available
-                </div>
-
+                <div id="P01" class="slot available">P01 - Available</div>
+                <div id="P02" class="slot available">P02 - Available</div>
+                <div id="P03" class="slot available">P03 - Available</div>
+                <div id="P04" class="slot available">P04 - Available</div>
+                <div id="P05" class="slot available">P05 - Available</div>
+                <div id="P06" class="slot available">P06 - Available</div>
+                <div id="P07" class="slot available">P07 - Available</div>
+                <div id="P08" class="slot available">P08 - Available</div>
             </div>
 
-
-            <!-- Currently Parked Vehicles -->
             <div class="parked-vehicles">
-
                 <h3>🚗 Currently Parked Vehicles</h3>
-
                 <div id="parkedVehiclesList">
-
-                    <p class="no-vehicles">
-                        No vehicles are currently parked.
-                    </p>
-
+                    <p class="no-vehicles">No vehicles are currently parked.</p>
                 </div>
-
             </div>
-
         </div>
 
         <!-- Vehicle Exit -->
         <div id="exitDashboard" class="card dashboard-section">
-
             <h2>🚪 Vehicle Exit</h2>
 
             <input type="text" id="exitVehicle" placeholder="Enter Vehicle Number">
@@ -216,80 +113,65 @@
             <input type="text" id="exitTime" placeholder="Exit Time" onfocus="this.type='time'"
                 onblur="if(!this.value)this.type='text'" required>
 
-
-            <button onclick="vehicleExit()">
-                Vehicle Exit
-            </button>
-
-
+            <button onclick="vehicleExit()">Vehicle Exit</button>
             <div id="exitResult"></div>
-
         </div>
-
 
         <!-- Search Vehicle -->
         <div id="searchDashboard" class="card dashboard-section">
-
             <h2>🔍 Search Vehicle</h2>
-
             <input type="text" id="searchVehicle" placeholder="Enter Vehicle Number">
-
-
-            <button onclick="searchVehicle()">
-                Search
-            </button>
-
-
+            <button onclick="searchVehicle()">Search</button>
             <div id="searchResult"></div>
-
         </div>
-
 
         <!-- Parking Report -->
         <div id="reportDashboard" class="card dashboard-section">
-
             <h2>📊 Parking Report</h2>
 
             <p>Total Slots: 8</p>
-
             <p>Occupied Slots: 0</p>
-
             <p>Available Slots: 8</p>
-
             <p>Today's Vehicles: 0</p>
-
             <p>Total Collection: ₹0</p>
 
+            <hr>
+
+            <h3>📅 Daily Revenue</h3>
+            <div id="dailyRevenue">
+                <p>Daily revenue will appear here.</p>
+            </div>
+
+            <hr>
+
+            <h3>📆 Monthly Revenue</h3>
+            <div id="monthlyRevenue">
+                <p>Monthly revenue will appear here.</p>
+            </div>
         </div>
 
     </div>
 
-
     <!-- Parking History -->
     <div id="historyDashboard" class="card dashboard-section history-card">
-
         <h2>📜 Parking History</h2>
+
+        <div class="history-filters">
+            <button type="button" onclick="filterHistory('ALL')">All</button>
+            <button type="button" onclick="filterHistory('PENDING')">Pending</button>
+            <button type="button" onclick="filterHistory('FAILED')">Failed</button>
+            <button type="button" onclick="filterHistory('CONFIRMED')">Confirmed</button>
+        </div>
 
         <div id="historyList">
             <p>No vehicle history available.</p>
         </div>
-
     </div>
-    <button onclick="logout()">
-        🚪 Logout
-    </button>
 
-    <!-- Footer -->
     <footer>
-
-        <p>
-            © 2026 Parking Management System
-        </p>
-
+        <p>© 2026 Parking Management System</p>
     </footer>
 
-
-    <!-- JavaScript -->
     <script src="script.js"></script>
 
 </body>
